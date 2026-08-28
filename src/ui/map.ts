@@ -1,4 +1,4 @@
-import { COLS, MAP_H, MAP_W, type Km } from "../game/geo";
+import { COLS, MAP_H, MAP_W, bearingDeg, formatGrid, rangeKm, type Km } from "../game/geo";
 import type { Engine, Marker } from "../game/engine";
 import { t } from "../i18n";
 
@@ -49,6 +49,31 @@ export function mountMap(canvas: HTMLCanvasElement, engine: Engine) {
       x: ((px - p.x0) / p.w) * MAP_W,
       y: MAP_H - ((py - p.y0) / p.h) * MAP_H,
     };
+  }
+
+  function eventKm(e: PointerEvent): Km | null {
+    const rec = canvas.getBoundingClientRect();
+    const x = e.clientX - rec.left;
+    const y = e.clientY - rec.top;
+    const p = plot();
+    if (x < p.x0 || y < p.y0 || x > p.x0 + p.w || y > p.y0 + p.h) return null;
+    return {
+      x: Math.max(0, Math.min(MAP_W, toKm(x, y).x)),
+      y: Math.max(0, Math.min(MAP_H, toKm(x, y).y)),
+    };
+  }
+
+  function drawLine(from: Km, to: Km, color: string, width: number, dash: number[]) {
+    const a = toPx(from);
+    const b = toPx(to);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.setLineDash(dash);
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
   }
 
   function draw() {
@@ -105,36 +130,56 @@ export function mountMap(canvas: HTMLCanvasElement, engine: Engine) {
     }
 
     for (const st of s.strokes) {
-      const a = toPx(st.from);
-      const b = toPx(st.to);
-      ctx.strokeStyle = st.tool === "red" ? RED : st.tool === "yellow" ? "#c4a035" : WHITE;
-      ctx.lineWidth = st.tool === "white" ? 1 : 2;
-      ctx.setLineDash(st.tool === "yellow" ? [7, 5] : []);
-      ctx.beginPath();
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
-      ctx.stroke();
-      ctx.setLineDash([]);
+      const color = st.tool === "red" ? RED : st.tool === "yellow" ? "#c4a035" : WHITE;
+      const dash = st.tool === "yellow" ? [7, 5] : [];
+      drawLine(st.from, st.to, color, st.tool === "white" ? 1.2 : 2.2, dash);
       if (st.tool === "red") {
+        const a = toPx(st.from);
+        const b = toPx(st.to);
+        ctx.fillStyle = RED;
+        ctx.font = "13px 'Caveat', cursive";
+        ctx.textAlign = "left";
+        ctx.fillText(
+          `${bearingDeg(st.from, st.to).toFixed(1)}°  ${rangeKm(st.from, st.to).toFixed(2)} km`,
+          (a.x + b.x) / 2 + 6,
+          (a.y + b.y) / 2 - 6,
+        );
+      }
+    }
+
+    const previewFrom =
+      s.tool === "red" ? s.markers.find((m) => m.kind === "nest")?.pos : s.pending;
+    if (previewFrom && s.preview && rangeKm(previewFrom, s.preview) > 0.05) {
+      const color = s.tool === "red" ? "rgba(196,60,44,0.55)" : s.tool === "white" ? "rgba(243,234,212,0.7)" : "rgba(196,160,53,0.7)";
+      drawLine(previewFrom, s.preview, color, 1.6, [4, 4]);
+      if (s.tool === "red") {
+        const q = toPx(s.preview);
         ctx.fillStyle = RED;
         ctx.font = "12px 'Caveat', cursive";
         ctx.textAlign = "left";
-        const mx = (a.x + b.x) / 2;
-        const my = (a.y + b.y) / 2;
-        const dx = st.to.x - st.from.x;
-        const dy = st.to.y - st.from.y;
-        let deg = (Math.atan2(dx, dy) * 180) / Math.PI;
-        if (deg < 0) deg += 360;
-        const rng = Math.hypot(dx, dy);
-        ctx.fillText(`${deg.toFixed(1)}°  ${rng.toFixed(2)} km`, mx + 6, my - 6);
+        ctx.fillText(
+          `${bearingDeg(previewFrom, s.preview).toFixed(1)}°  ${rangeKm(previewFrom, s.preview).toFixed(2)} km`,
+          q.x + 8,
+          q.y - 8,
+        );
       }
     }
 
     if (s.pending) {
       const q = toPx(s.pending);
       ctx.strokeStyle = RED;
+      ctx.lineWidth = 1.4;
       ctx.beginPath();
-      ctx.arc(q.x, q.y, 7, 0, Math.PI * 2);
+      ctx.arc(q.x, q.y, 8, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    if (s.hover) {
+      const q = toPx(s.hover);
+      ctx.strokeStyle = "rgba(28,22,18,0.45)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(q.x, q.y, 6, 0, Math.PI * 2);
       ctx.stroke();
     }
 
@@ -144,20 +189,22 @@ export function mountMap(canvas: HTMLCanvasElement, engine: Engine) {
       const x = a.x + (b.x - a.x) * s.tracer.t;
       const y = a.y + (b.y - a.y) * s.tracer.t;
       ctx.strokeStyle = RED;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.4;
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
       ctx.lineTo(x, y);
       ctx.stroke();
       ctx.fillStyle = INK;
       ctx.beginPath();
-      ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.arc(x, y, 4.5, 0, Math.PI * 2);
       ctx.fill();
     }
 
+    const now = performance.now();
     for (const im of s.impacts) {
       const q = toPx(im.pos);
-      ctx.strokeStyle = INK;
+      const age = Math.min(1, (now - im.at) / 700);
+      ctx.strokeStyle = `rgba(28,22,18,${1 - age * 0.55})`;
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(q.x - 6, q.y - 6);
@@ -166,13 +213,13 @@ export function mountMap(canvas: HTMLCanvasElement, engine: Engine) {
       ctx.lineTo(q.x - 6, q.y + 6);
       ctx.stroke();
       ctx.beginPath();
-      ctx.arc(q.x, q.y, 11, 0, Math.PI * 2);
+      ctx.arc(q.x, q.y, 8 + age * 16, 0, Math.PI * 2);
       ctx.stroke();
     }
 
     for (const mk of s.markers) {
       if (mk.hidden) continue;
-      drawMarker(mk, toPx(mk.pos), s.gunBearing);
+      drawMarker(mk, toPx(mk.pos), s.shownBearing);
     }
   }
 
@@ -261,17 +308,38 @@ export function mountMap(canvas: HTMLCanvasElement, engine: Engine) {
     ctx.closePath();
   }
 
-  function onClick(e: MouseEvent) {
-    const rec = canvas.getBoundingClientRect();
-    const km = toKm(e.clientX - rec.left, e.clientY - rec.top);
-    const p = plot();
-    const x = e.clientX - rec.left;
-    const y = e.clientY - rec.top;
-    if (engine.getState().screen !== "duty") return;
-    if (x < p.x0 || y < p.y0 || x > p.x0 + p.w || y > p.y0 + p.h) return;
-    km.x = Math.max(0, Math.min(MAP_W, km.x));
-    km.y = Math.max(0, Math.min(MAP_H, km.y));
-    engine.mapClick(km);
+  function toolCursor() {
+    const ttool = engine.getState().tool;
+    canvas.style.cursor = ttool === "erase" ? "cell" : ttool === "red" ? "crosshair" : "pointer";
+  }
+
+  function onDown(e: PointerEvent) {
+    const km = eventKm(e);
+    if (!km) return;
+    e.preventDefault();
+    canvas.setPointerCapture(e.pointerId);
+    engine.mapDown(km);
+    toolCursor();
+  }
+
+  function onMove(e: PointerEvent) {
+    const km = eventKm(e);
+    engine.mapHover(km);
+    toolCursor();
+  }
+
+  function onUp(e: PointerEvent) {
+    const km = eventKm(e);
+    if (km) engine.mapUp(km);
+    try {
+      canvas.releasePointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function onLeave() {
+    engine.mapHover(null);
   }
 
   const ro = new ResizeObserver(() => {
@@ -279,16 +347,27 @@ export function mountMap(canvas: HTMLCanvasElement, engine: Engine) {
     draw();
   });
   ro.observe(canvas);
-  canvas.addEventListener("click", onClick);
+  canvas.addEventListener("pointerdown", onDown);
+  canvas.addEventListener("pointermove", onMove);
+  canvas.addEventListener("pointerup", onUp);
+  canvas.addEventListener("pointerleave", onLeave);
   mapImg.onload = () => draw();
   size();
   draw();
+  toolCursor();
 
   return {
     draw,
+    hoverGrid() {
+      const h = engine.getState().hover;
+      return h ? formatGrid(h) : "";
+    },
     destroy() {
       ro.disconnect();
-      canvas.removeEventListener("click", onClick);
+      canvas.removeEventListener("pointerdown", onDown);
+      canvas.removeEventListener("pointermove", onMove);
+      canvas.removeEventListener("pointerup", onUp);
+      canvas.removeEventListener("pointerleave", onLeave);
     },
   };
 }

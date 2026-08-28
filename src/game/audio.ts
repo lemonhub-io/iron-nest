@@ -41,12 +41,19 @@ function tone(freq: number, dur: number, gain: number, type: OscillatorType = "s
 export const sfx = {
   unlock: () => ac(),
   tick: () => tone(180 + Math.random() * 40, 0.04, 0.03, "square"),
+  hover: () => tone(240 + Math.random() * 30, 0.025, 0.012, "square"),
+  deny: () => {
+    tone(90, 0.09, 0.05, "square");
+    tone(64, 0.12, 0.04, "sawtooth");
+  },
   pencil: () => noise(0.12, 0.04, "brown"),
+  scratch: () => noise(0.05, 0.025, "brown"),
   stamp: () => {
     tone(90, 0.08, 0.06, "square");
     noise(0.08, 0.05, "white");
   },
   clunk: () => tone(70, 0.12, 0.07, "sawtooth"),
+  whir: () => tone(48 + Math.random() * 8, 0.07, 0.02, "sawtooth"),
   ram: () => {
     noise(0.18, 0.08, "brown");
     tone(55, 0.16, 0.05, "square");
@@ -59,6 +66,10 @@ export const sfx = {
   impact: () => {
     noise(0.35, 0.14, "brown");
     tone(40, 0.25, 0.08, "square");
+  },
+  arm: () => {
+    tone(140, 0.08, 0.04, "square");
+    tone(220, 0.05, 0.03, "square");
   },
   meow: () => {
     const c = ac();

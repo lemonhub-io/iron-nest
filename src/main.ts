@@ -7,7 +7,7 @@ import { SHELLS, type ShellId } from "./game/ballistics";
 import { sfx } from "./game/audio";
 import { createEngine, type CalcError, type FallNote } from "./game/engine";
 import { mountMap } from "./ui/map";
-import { applyDom, setLocale, subscribeLocale, t, tList, type Locale } from "./i18n";
+import { applyDom, getLocale, setLocale, subscribeLocale, t, tList, type Locale } from "./i18n";
 
 const engine = createEngine();
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -38,6 +38,10 @@ const ramBtn = $<HTMLButtonElement>("ram");
 const armBtn = $<HTMLButtonElement>("arm");
 
 const map = mountMap($<HTMLCanvasElement>("map"), engine);
+let lastChipSig = "";
+let lastImpactAt = -1;
+let lastWhir = 0;
+let lastScratch = 0;
 
 function show(el: HTMLElement) {
   for (const s of [boot, duty, paper, ending]) s.classList.toggle("hidden", s !== el);
@@ -170,6 +174,10 @@ $<HTMLButtonElement>("calculate").addEventListener("click", () => {
 });
 
 ramBtn.addEventListener("click", () => {
+  if (engine.getState().rammed) {
+    sfx.deny();
+    return;
+  }
   sfx.ram();
   engine.ram();
 });
@@ -180,12 +188,28 @@ $<HTMLButtonElement>("lay").addEventListener("click", () => {
 });
 
 armBtn.addEventListener("click", () => {
-  sfx.tick();
+  const s = engine.getState();
+  if (!s.rammed) {
+    sfx.deny();
+    return;
+  }
+  sfx.arm();
   engine.arm();
 });
 
 fireBtn.addEventListener("click", () => {
+  const s = engine.getState();
+  if (!s.rammed || !s.armed || s.screen !== "duty") {
+    sfx.deny();
+    engine.fire();
+    return;
+  }
   sfx.fire();
+  try {
+    navigator.vibrate?.(40);
+  } catch {
+    /* ignore */
+  }
   engine.fire();
 });
 
@@ -209,6 +233,45 @@ calcRange.addEventListener("change", () => {
 bearing.addEventListener("input", () => engine.setGunBearing(Number(bearing.value)));
 elev.addEventListener("input", () => engine.setGunElev(Number(elev.value)));
 
+window.addEventListener("keydown", (e) => {
+  if (e.target instanceof HTMLInputElement && e.target.type === "number") return;
+  const s = engine.getState();
+  if (s.screen !== "duty") return;
+  if (e.key === "Escape") {
+    engine.cancelPending();
+    return;
+  }
+  if (e.key === "1") engine.selectShell("HE");
+  if (e.key === "2") engine.selectShell("AP");
+  if (e.key === "3") engine.selectShell("STAR");
+  if (e.key === "4") engine.selectShell("SMK");
+  if (e.key === "5") engine.selectShell("PRPG");
+  if (e.key === "r" || e.key === "R") {
+    if (!s.rammed) {
+      sfx.ram();
+      engine.ram();
+    }
+  }
+  if (e.key === "a" || e.key === "A") {
+    if (s.rammed) {
+      sfx.arm();
+      engine.arm();
+    } else sfx.deny();
+  }
+  if (e.key === "l" || e.key === "L") {
+    sfx.clunk();
+    engine.layFromCard();
+  }
+  if (e.key === "c" || e.key === "C") {
+    sfx.clunk();
+    engine.calculate();
+  }
+  if (e.key === "f" || e.key === "F" || e.key === " ") {
+    e.preventDefault();
+    fireBtn.click();
+  }
+});
+
 function fmt(n: number | null, u: string) {
   return n == null ? "-" : `${n.toFixed(n % 1 === 0 ? 0 : 1)}${u}`;
 }
@@ -230,17 +293,21 @@ function render() {
     if (c.kind === "bearing") vars[c.originId] = c.deg.toFixed(1);
   }
   dispatch.textContent = t(d.bodyKey, vars);
-  chips.innerHTML = "";
-  for (const c of d.chips) {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "chip";
-    b.textContent = chipLabel(c);
-    b.addEventListener("click", () => {
-      sfx.stamp();
-      engine.useChip(c);
-    });
-    chips.appendChild(b);
+  const chipSig = `${s.missionIndex}:${s.wire}:${getLocale()}`;
+  if (chipSig !== lastChipSig) {
+    lastChipSig = chipSig;
+    chips.innerHTML = "";
+    for (const c of d.chips) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip";
+      b.textContent = chipLabel(c);
+      b.addEventListener("click", () => {
+        sfx.stamp();
+        engine.useChip(c);
+      });
+      chips.appendChild(b);
+    }
   }
 
   document.querySelectorAll<HTMLButtonElement>("[data-wire]").forEach((b) => {
@@ -281,21 +348,55 @@ function render() {
     : t("load.open", { shell: s.selectedShell, charges: s.loadCharges });
 
   ramBtn.disabled = s.rammed;
+  ramBtn.classList.toggle("on", s.rammed);
   armBtn.classList.toggle("on", s.armed);
   armBtn.textContent = s.armed ? t("duty.armed") : t("duty.arm");
+  const pipe = engine.pipe();
   fireBtn.disabled = s.screen === "flight";
+  fireBtn.classList.toggle("hot", pipe.fire && s.screen === "duty");
 
-  if (document.activeElement !== bearing) bearing.value = String(s.gunBearing);
-  if (document.activeElement !== elev) elev.value = String(s.gunElev);
-  bearingOut.textContent = `${s.gunBearing.toFixed(1)}°`;
-  elevOut.textContent = `${s.gunElev.toFixed(1)}°`;
+  const match = engine.cardMatched();
+  if (document.activeElement !== bearing) bearing.value = String(s.shownBearing);
+  if (document.activeElement !== elev) elev.value = String(s.shownElev);
+  bearingOut.textContent = `${s.shownBearing.toFixed(1)}°`;
+  elevOut.textContent = `${s.shownElev.toFixed(1)}°`;
+  bearingOut.classList.toggle("ok", match.bearing);
+  elevOut.classList.toggle("ok", match.elev);
+
+  const steps: Array<"plot" | "calc" | "load" | "lay" | "arm" | "fire"> = [
+    "plot",
+    "calc",
+    "load",
+    "lay",
+    "arm",
+    "fire",
+  ];
+  const next = steps.find((k) => !pipe[k]);
+  document.querySelectorAll<HTMLElement>("[data-pipe]").forEach((el) => {
+    const k = el.dataset.pipe as (typeof steps)[number];
+    el.classList.toggle("on", pipe[k]);
+    el.classList.toggle("next", k === next);
+  });
+
+  const latest = s.impacts[s.impacts.length - 1];
+  if (latest && latest.at !== lastImpactAt) {
+    lastImpactAt = latest.at;
+    sfx.impact();
+  }
 
   const hints = tList(`mission.${m.id}.coach`);
   coach.textContent = hints[Math.min(s.coachIndex, Math.max(0, hints.length - 1))] ?? "";
   result.textContent = fallText(s.lastResult);
-  mapReadout.textContent = s.pending ? t("map.second") : t("map.first");
+  const grid = map.hoverGrid();
+  mapReadout.textContent = grid ? grid : s.pending ? t("map.second") : t("map.first");
 
-  duty.classList.toggle("shake", s.shake > 0);
+  if (s.shake > 0) {
+    duty.classList.remove("shake");
+    void duty.offsetWidth;
+    duty.classList.add("shake");
+  } else {
+    duty.classList.remove("shake");
+  }
 
   if (s.paper) {
     $("paper-mast").textContent = t("paper.masthead");
@@ -317,7 +418,28 @@ function render() {
   map.draw();
 }
 
+function tickUi() {
+  map.draw();
+  const s = engine.getState();
+  const grid = map.hoverGrid();
+  mapReadout.textContent = grid ? grid : s.pending ? t("map.second") : t("map.first");
+  if (document.activeElement !== bearing) bearing.value = String(s.shownBearing);
+  if (document.activeElement !== elev) elev.value = String(s.shownElev);
+  bearingOut.textContent = `${s.shownBearing.toFixed(1)}°`;
+  elevOut.textContent = `${s.shownElev.toFixed(1)}°`;
+  const now = performance.now();
+  if (s.slewing && now - lastWhir > 70) {
+    lastWhir = now;
+    sfx.whir();
+  }
+  if (s.dragging && now - lastScratch > 55) {
+    lastScratch = now;
+    sfx.scratch();
+  }
+}
+
 engine.subscribe(render);
+engine.subscribeTick(tickUi);
 subscribeLocale(render);
 applyDom();
 render();

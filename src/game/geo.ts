@@ -56,6 +56,26 @@ export function angleDelta(a: number, b: number): number {
   return ((((a - b) % 360) + 540) % 360) - 180;
 }
 
+export function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+
+/** Shortest-path interpolate degrees, result in [0, 360). */
+export function lerpAngle(a: number, b: number, t: number): number {
+  const d = ((((b - a) % 360) + 540) % 360) - 180;
+  let v = a + d * t;
+  if (v < 0) v += 360;
+  if (v >= 360) v -= 360;
+  return v;
+}
+
+export function clampKm(p: Km): Km {
+  return {
+    x: Math.max(0, Math.min(MAP_W, p.x)),
+    y: Math.max(0, Math.min(MAP_H, p.y)),
+  };
+}
+
 export function dist(a: Km, b: Km): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }

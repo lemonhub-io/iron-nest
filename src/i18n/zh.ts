@@ -39,7 +39,9 @@ export const zh: DeepString<typeof en> = {
     white: "铅笔",
     erase: "擦除",
     clear: "清空",
-    mapHelp: "点两个位置。红线会把方位和距离抄到射击卡片上。",
+    mapHelp: "红线永远从铁巢出发。点击或拖向目标。",
+    ok: "合",
+    off: "差",
     card: "射击卡片",
     calc: "弹道计算器",
     rangeKm: "距离 公里",
@@ -59,6 +61,14 @@ export const zh: DeepString<typeof en> = {
     cardElev: "射角",
     cardShell: "弹药",
   },
+  pipe: {
+    plot: "标图",
+    calc: "解算",
+    load: "装填",
+    lay: "瞄准",
+    arm: "待发",
+    fire: "开火",
+  },
   paper: {
     continue: "继续",
     reconAlt: "航空侦察照片",
@@ -71,8 +81,8 @@ export const zh: DeepString<typeof en> = {
     alt: "炮塔里的猫",
   },
   map: {
-    first: "第一次点击确定起点。",
-    second: "第二次点击完成这条线。",
+    first: "指针在网格上移动。红线从铁巢引出。",
+    second: "松手落图。黄线需要两点或一拖。",
   },
   calc: {
     empty: "尚无解。",
@@ -147,8 +157,8 @@ export const zh: DeepString<typeof en> = {
         "最高统帅部致铁巢：\n开始校射试验。\n\n- 在地图上标出至目标的弹道。\n- 对目标发射高爆弹。\n\n铁巢位置 - C3 5:5\n\n目标坐标：\n目标1 位于 N8 2:2\n\n荣耀归于卡斯蒂利亚！",
       front: "阿兰胡埃斯观察：民用医院在校射点以东。统帅部不再作补充。",
       coach: [
-        "按下红色的目标芯片。地图上会落下标记。",
-        "红笔：先点铁巢，再点目标。这条线就是射击方位和距离。",
+        "按下红色的目标芯片，或直接在地图上点目标。",
+        "红线永远从铁巢出发。想手感就拖一拖。",
         "抄录卡片，选 4 包药，然后解算。",
         "装填 HE，推入相同包数，按卡片瞄准，待发，开火。",
       ],

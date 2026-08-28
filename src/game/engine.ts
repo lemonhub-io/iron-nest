@@ -8,9 +8,12 @@ import {
 } from "./ballistics";
 import {
   bearingDeg,
+  clampKm,
   dist,
   formatGrid,
   intersectSeg,
+  lerp,
+  lerpAngle,
   project,
   rangeKm,
   type Km,
@@ -70,7 +73,10 @@ export interface Impact {
   pos: Km;
   shell: ShellId;
   note: FallNote;
+  at: number;
 }
+
+export type PipeStep = "plot" | "calc" | "load" | "lay" | "arm" | "fire";
 
 export interface Clipboard {
   bearing: number | null;
@@ -89,6 +95,9 @@ export interface GameState {
   strokes: Stroke[];
   tool: Tool;
   pending: Km | null;
+  hover: Km | null;
+  preview: Km | null;
+  dragging: boolean;
   clipboard: Clipboard;
   calcRange: number;
   calcCharges: number;
@@ -99,6 +108,9 @@ export interface GameState {
   rammed: boolean;
   gunBearing: number;
   gunElev: number;
+  shownBearing: number;
+  shownElev: number;
+  slewing: boolean;
   armed: boolean;
   impacts: Impact[];
   tracer: { from: Km; to: Km; t: number } | null;
@@ -132,6 +144,8 @@ function emptyClip(): Clipboard {
 export function createEngine() {
   const missions = buildMissions();
   const listeners = new Set<() => void>();
+  const tickers = new Set<() => void>();
+  let animToken = 0;
 
   const state: GameState = {
     screen: "boot",
@@ -142,6 +156,9 @@ export function createEngine() {
     strokes: [],
     tool: "red",
     pending: null,
+    hover: null,
+    preview: null,
+    dragging: false,
     clipboard: emptyClip(),
     calcRange: 0,
     calcCharges: 4,
@@ -152,6 +169,9 @@ export function createEngine() {
     rammed: false,
     gunBearing: 0,
     gunElev: 20,
+    shownBearing: 0,
+    shownElev: 20,
+    slewing: false,
     armed: false,
     impacts: [],
     tracer: null,
@@ -165,16 +185,21 @@ export function createEngine() {
   };
 
   const notify = () => listeners.forEach((fn) => fn());
+  const notifyTick = () => tickers.forEach((fn) => fn());
 
   const mission = () => state.missions[state.missionIndex];
 
   const nest = (): Marker => state.markers.find((m) => m.kind === "nest")!;
 
   function loadMission(i: number) {
+    animToken += 1;
     state.missionIndex = i;
     state.markers = cloneMissionMarkers(state.missions[i]);
     state.strokes = [];
     state.pending = null;
+    state.hover = null;
+    state.preview = null;
+    state.dragging = false;
     state.clipboard = emptyClip();
     state.calcRange = 0;
     state.calcCharges = 4;
@@ -185,6 +210,9 @@ export function createEngine() {
     state.rammed = false;
     state.gunBearing = 0;
     state.gunElev = 20;
+    state.shownBearing = 0;
+    state.shownElev = 20;
+    state.slewing = false;
     state.armed = false;
     state.impacts = [];
     state.tracer = null;
@@ -197,14 +225,30 @@ export function createEngine() {
     state.tool = "red";
   }
 
+  function applyRedSolution(from: Km, to: Km) {
+    if (dist(from, to) < 0.08) return;
+    state.strokes = state.strokes.filter((s) => s.tool !== "red");
+    state.strokes.push({ id: nid(), tool: "red", from: { ...from }, to: { ...to } });
+    state.clipboard.bearing = round1(bearingDeg(from, to));
+    state.clipboard.range = round2(rangeKm(from, to));
+    state.calcRange = state.clipboard.range;
+    bumpCoach(1);
+    if (!state.rammed) state.loadCharges = state.calcCharges;
+    solveElevation();
+  }
+
   function pushStroke(tool: Stroke["tool"], from: Km, to: Km) {
-    state.strokes.push({ id: nid(), tool, from: { ...from }, to: { ...to } });
+    if (dist(from, to) < 0.08) return;
     if (tool === "red") {
-      state.clipboard.bearing = round1(bearingDeg(from, to));
-      state.clipboard.range = round2(rangeKm(from, to));
-      state.calcRange = state.clipboard.range;
-      bumpCoach(1);
+      applyRedSolution(from, to);
+      return;
     }
+    if (tool === "yellow") {
+      state.strokes = state.strokes.filter(
+        (s) => !(s.tool === "yellow" && dist(s.from, from) < 0.12),
+      );
+    }
+    state.strokes.push({ id: nid(), tool, from: { ...from }, to: { ...to } });
     maybeFix();
   }
 
@@ -259,7 +303,13 @@ export function createEngine() {
   function setTool(t: Tool) {
     state.tool = t;
     state.pending = null;
+    state.preview = null;
+    state.dragging = false;
     notify();
+  }
+
+  function fireKind(kind: Marker["kind"]) {
+    return kind === "enemy" || kind === "city" || kind === "hq" || kind === "pin";
   }
 
   function useChip(chip: Chip) {
@@ -268,6 +318,7 @@ export function createEngine() {
       if (mk) {
         mk.hidden = false;
         bumpCoach(1);
+        if (fireKind(mk.kind)) applyRedSolution(nest().pos, mk.pos);
       }
     } else {
       const origin = state.markers.find((m) => m.id === chip.originId);
@@ -295,31 +346,106 @@ export function createEngine() {
     return { ...best };
   }
 
-  function mapClick(raw: Km) {
-    if (state.screen !== "duty") return;
-    const km = snap(raw);
+  function busy() {
+    return state.screen === "flight" || state.screen !== "duty";
+  }
+
+  function mapHover(raw: Km | null) {
+    if (raw == null) {
+      state.hover = null;
+      if (!state.dragging) state.preview = null;
+      notifyTick();
+      return;
+    }
+    state.hover = snap(clampKm(raw));
+    if (state.dragging && state.pending) state.preview = state.hover;
+    else if (state.tool === "red" && !state.dragging) state.preview = state.hover;
+    else if (state.pending) state.preview = state.hover;
+    notifyTick();
+  }
+
+  function mapDown(raw: Km) {
+    if (busy()) return;
+    const km = snap(clampKm(raw));
+    state.dragging = true;
     if (state.tool === "erase") {
-      state.strokes = state.strokes.filter(
-        (s) => dist(s.from, km) > 0.45 && dist(s.to, km) > 0.45,
-      );
-      const fix = state.markers.find((m) => m.id === "fix");
-      if (fix && dist(fix.pos, km) < 0.45) {
-        state.markers = state.markers.filter((m) => m.id !== "fix");
-      }
+      eraseAt(km);
+      notify();
+      return;
+    }
+    if (state.tool === "red") {
+      state.pending = nest().pos;
+      state.preview = km;
+      notifyTick();
+      return;
+    }
+    if (!state.pending) state.pending = km;
+    state.preview = km;
+    notifyTick();
+  }
+
+  function mapUp(raw: Km) {
+    if (busy()) return;
+    const km = snap(clampKm(raw));
+    state.dragging = false;
+    if (state.tool === "erase") {
+      state.pending = null;
+      state.preview = null;
+      notify();
+      return;
+    }
+    if (state.tool === "red") {
+      applyRedSolution(nest().pos, km);
+      state.pending = null;
+      state.preview = km;
+      notify();
+      return;
+    }
+    if (state.pending && dist(state.pending, km) >= 0.12) {
+      pushStroke(state.tool === "white" ? "white" : "yellow", state.pending, km);
+      state.pending = null;
+      state.preview = null;
+      notify();
+      return;
+    }
+    notify();
+  }
+
+  function mapClick(raw: Km) {
+    if (busy()) return;
+    const km = snap(clampKm(raw));
+    if (state.tool === "erase") {
+      eraseAt(km);
+      notify();
+      return;
+    }
+    if (state.tool === "red") {
+      applyRedSolution(nest().pos, km);
+      state.pending = null;
+      state.preview = km;
       notify();
       return;
     }
     if (!state.pending) {
       state.pending = { ...km };
+      state.preview = km;
       notify();
       return;
     }
-    const tool = state.tool;
-    if (tool === "red" || tool === "yellow" || tool === "white") {
-      pushStroke(tool, state.pending, km);
-    }
+    pushStroke(state.tool === "white" ? "white" : "yellow", state.pending, km);
     state.pending = null;
+    state.preview = null;
     notify();
+  }
+
+  function eraseAt(km: Km) {
+    state.strokes = state.strokes.filter(
+      (s) => dist(s.from, km) > 0.45 && dist(s.to, km) > 0.45,
+    );
+    const fix = state.markers.find((m) => m.id === "fix");
+    if (fix && dist(fix.pos, km) < 0.45) {
+      state.markers = state.markers.filter((m) => m.id !== "fix");
+    }
   }
 
   function clearPlot() {
@@ -338,30 +464,29 @@ export function createEngine() {
   function setCalcCharges(n: number) {
     state.calcCharges = Math.max(1, Math.min(6, n));
     state.calcElev = null;
+    if (!state.rammed) state.loadCharges = state.calcCharges;
+    if (state.calcRange > 0.05) solveElevation();
     notify();
   }
 
-  function calculate() {
+  function solveElevation() {
     const r = state.calcRange;
     const c = state.calcCharges;
     if (r <= 0.05) {
       state.calcError = { kind: "needRange" };
       state.calcElev = null;
-      notify();
-      return;
+      return false;
     }
     if (r > maxRange(c) + 0.01) {
       state.calcError = { kind: "needPowder", charges: c, max: maxRange(c).toFixed(1) };
       state.calcElev = null;
-      notify();
-      return;
+      return false;
     }
     const el = elevationFor(r, c);
     if (el < 8 || el > 72) {
       state.calcError = { kind: "uglyAngle" };
       state.calcElev = null;
-      notify();
-      return;
+      return false;
     }
     state.calcError = null;
     state.calcElev = round1(el);
@@ -369,6 +494,11 @@ export function createEngine() {
     state.clipboard.charges = c;
     state.clipboard.elevation = state.calcElev;
     bumpCoach(2);
+    return true;
+  }
+
+  function calculate() {
+    solveElevation();
     notify();
   }
 
@@ -405,19 +535,70 @@ export function createEngine() {
     let v = n % 360;
     if (v < 0) v += 360;
     state.gunBearing = v;
+    state.shownBearing = v;
+    state.slewing = false;
+    animToken += 1;
     notify();
   }
 
   function setGunElev(n: number) {
     state.gunElev = Math.max(5, Math.min(75, n));
+    state.shownElev = state.gunElev;
+    state.slewing = false;
+    animToken += 1;
     notify();
+  }
+
+  function almost(a: number, b: number, eps: number) {
+    return Math.abs(a - b) < eps;
+  }
+
+  function startSlew() {
+    state.slewing = true;
+    const token = ++animToken;
+    const step = () => {
+      if (token !== animToken) return;
+      state.shownBearing = lerpAngle(state.shownBearing, state.gunBearing, 0.22);
+      state.shownElev = lerp(state.shownElev, state.gunElev, 0.22);
+      const bDone = Math.abs(((((state.shownBearing - state.gunBearing) % 360) + 540) % 360) - 180) < 0.4;
+      const eDone = almost(state.shownElev, state.gunElev, 0.25);
+      if (bDone && eDone) {
+        state.shownBearing = state.gunBearing;
+        state.shownElev = state.gunElev;
+        state.slewing = false;
+        notify();
+        return;
+      }
+      notifyTick();
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
 
   function layFromCard() {
     if (state.clipboard.bearing != null) state.gunBearing = state.clipboard.bearing;
     if (state.clipboard.elevation != null) state.gunElev = state.clipboard.elevation;
     bumpCoach(4);
+    startSlew();
     notify();
+  }
+
+  function cardMatched() {
+    const cl = state.clipboard;
+    if (cl.bearing == null || cl.elevation == null) return { bearing: false, elev: false };
+    const bOk = Math.abs(((((state.gunBearing - cl.bearing) % 360) + 540) % 360) - 180) <= 2.4;
+    const eOk = Math.abs(state.gunElev - cl.elevation) <= 1.6;
+    return { bearing: bOk, elev: eOk };
+  }
+
+  function pipe(): Record<PipeStep, boolean> {
+    const match = cardMatched();
+    const plot = state.clipboard.range != null;
+    const calc = state.clipboard.elevation != null;
+    const load = state.rammed;
+    const lay = match.bearing && match.elev;
+    const arm = state.armed;
+    return { plot, calc, load, lay, arm, fire: plot && calc && load && lay && arm };
   }
 
   function arm() {
@@ -460,13 +641,16 @@ export function createEngine() {
     state.tracer = { from: n.pos, to: impact, t: 0 };
     notify();
 
+    const token = ++animToken;
     const start = performance.now();
-    const dur = Math.min(2800, 700 + flight * 380);
+    const dur = Math.min(2200, 620 + flight * 340);
 
     const step = (now: number) => {
+      if (token !== animToken) return;
       const t = Math.min(1, (now - start) / dur);
-      if (state.tracer) state.tracer.t = t;
-      notify();
+      const eased = 1 - (1 - t) * (1 - t);
+      if (state.tracer) state.tracer.t = eased;
+      notifyTick();
       if (t < 1) {
         requestAnimationFrame(step);
         return;
@@ -486,7 +670,7 @@ export function createEngine() {
   ) {
     revealNear(impact, Math.max(reveal, blast));
     const note = describeFall(impact, shell, blast, lethal);
-    state.impacts.push({ pos: impact, shell, note });
+    state.impacts.push({ pos: impact, shell, note, at: performance.now() });
     state.lastResult = note;
     state.tracer = null;
     state.shake = 0;
@@ -618,10 +802,19 @@ export function createEngine() {
       listeners.add(fn);
       return () => listeners.delete(fn);
     },
+    subscribeTick(fn: () => void) {
+      tickers.add(fn);
+      return () => tickers.delete(fn);
+    },
+    pipe,
+    cardMatched,
     startDuty,
     setWire,
     setTool,
     useChip,
+    mapHover,
+    mapDown,
+    mapUp,
     mapClick,
     clearPlot,
     setCalcRange,
@@ -641,6 +834,8 @@ export function createEngine() {
     restart,
     cancelPending() {
       state.pending = null;
+      state.preview = null;
+      state.dragging = false;
       notify();
     },
   };

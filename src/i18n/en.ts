@@ -31,7 +31,9 @@ export const en = {
     white: "PENCIL",
     erase: "ERASE",
     clear: "CLEAR",
-    mapHelp: "Click two points. Red copies bearing and range to the card.",
+    mapHelp: "Red line always starts at the Nest. Click or drag to the target.",
+    ok: "ON",
+    off: "OFF",
     card: "FIRING CARD",
     calc: "BALLISTIC CALCULATOR",
     rangeKm: "RANGE KM",
@@ -51,6 +53,14 @@ export const en = {
     cardElev: "ELEV",
     cardShell: "SHELL",
   },
+  pipe: {
+    plot: "PLOT",
+    calc: "CALC",
+    load: "LOAD",
+    lay: "LAY",
+    arm: "ARM",
+    fire: "FIRE",
+  },
   paper: {
     continue: "CONTINUE",
     reconAlt: "Aerial print",
@@ -63,8 +73,8 @@ export const en = {
     alt: "Turret cat",
   },
   map: {
-    first: "First click sets origin.",
-    second: "Second click finishes the line.",
+    first: "Hover the grid. Red line runs from the Nest.",
+    second: "Release to plot. Yellow needs two points or a drag.",
   },
   calc: {
     empty: "No solution.",
@@ -140,8 +150,8 @@ export const en = {
       front:
         "Aranjuez watch: civil hospital compound sits east of the calibration post. No further comment from Command.",
       coach: [
-        "Press the red Target chip. It drops a mark.",
-        "Red pencil: click the Nest, then the target. That line is your firing bearing and range.",
+        "Press the red Target chip, or click the target on the map.",
+        "The red line always starts at the Nest. Drag if you want to feel the plot.",
         "COPY the card, pick 4 powder, then CALCULATE.",
         "Load HE, ram the same powder count, LAY FROM CARD, ARM, FIRE.",
       ],

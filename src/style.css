@@ -67,8 +67,17 @@ button {
   letter-spacing: 0.08em;
 }
 
+button {
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.12s ease, color 0.12s ease;
+}
+
+button:hover {
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
 button:active {
   transform: translateY(1px);
+  box-shadow: inset 0 2px 0 rgba(28, 22, 18, 0.25);
 }
 
 button:focus-visible,
@@ -328,6 +337,45 @@ input:focus-visible {
   border-color: var(--ink);
 }
 
+.chip:hover {
+  filter: brightness(1.08);
+}
+
+.pipe {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  list-style: none;
+  margin: 6px 0 8px;
+  padding: 0;
+}
+
+.pipe li {
+  border: 2px solid var(--ink);
+  padding: 4px 2px;
+  text-align: center;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  background: var(--paper-dark);
+  color: var(--muted);
+}
+
+.pipe li.on {
+  background: var(--olive);
+  color: var(--paper);
+}
+
+.pipe li.next {
+  background: var(--red);
+  color: var(--paper);
+  animation: pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.18); }
+}
+
 .tele {
   flex: 1;
 }
@@ -473,6 +521,14 @@ input[type="range"] {
   letter-spacing: 0.16em;
 }
 
+.fire.hot {
+  box-shadow: 0 0 0 2px var(--ink), 4px 4px 0 var(--ink);
+}
+
+.gun output.ok {
+  color: var(--olive);
+}
+
 .fire:disabled,
 .heavy:disabled {
   opacity: 0.45;
@@ -593,8 +649,12 @@ input[type="range"] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .shake {
+  .shake,
+  .pipe li.next {
     animation: none;
+  }
+  button {
+    transition: none;
   }
   button:active {
     transform: none;
