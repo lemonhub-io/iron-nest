@@ -1,0 +1,200 @@
+import type { en } from "./en";
+
+type DeepString<T> = T extends string
+  ? string
+  : T extends readonly string[]
+    ? string[]
+    : { [K in keyof T]: DeepString<T[K]> };
+
+export const zh: DeepString<typeof en> = {
+  app: {
+    title: "IRON NEST 野战手册",
+    lang: "语言",
+    en: "EN",
+    zh: "中文",
+  },
+  boot: {
+    stamp: "荣耀归于卡斯蒂利亚",
+    sub: "野战手册",
+    tag: "重炮塔模拟",
+    lede: "你是操作员。最高统帅部发来坐标。你标图、解算射角、装填、开火。铁巢从不离开这张纸。",
+    step1: "根据电传机在地图上做标记。",
+    step2: "从铁巢拉红线到目标。那就是方位和距离。",
+    step3: "计算装药。装填。瞄准。开火。",
+    begin: "开始值勤",
+    foot: "三次作战。一条闭环。二维野战手册式改编。",
+  },
+  duty: {
+    brandSub: "野战手册",
+    clock: "值勤中",
+    teleprinter: "电传机",
+    command: "统帅部",
+    front: "前线",
+    rack: "弹药架",
+    powder: "发射药",
+    ram: "推弹上膛",
+    map: "战术地图",
+    red: "红线",
+    yellow: "黄射线",
+    white: "铅笔",
+    erase: "擦除",
+    clear: "清空",
+    mapHelp: "点两个位置。红线会把方位和距离抄到射击卡片上。",
+    card: "射击卡片",
+    calc: "弹道计算器",
+    rangeKm: "距离 公里",
+    copyRange: "抄录距离",
+    calculate: "解算",
+    gun: "瞄准",
+    bearing: "方位",
+    elevation: "射角",
+    lay: "按卡片瞄准",
+    arm: "待发",
+    armed: "已待发",
+    fire: "开火",
+    hint: "下一条提示",
+    cardBearing: "方位",
+    cardRange: "距离",
+    cardPowder: "装药",
+    cardElev: "射角",
+    cardShell: "弹药",
+  },
+  paper: {
+    continue: "继续",
+    reconAlt: "航空侦察照片",
+    final: "最终电文",
+    again: "返回营房",
+    masthead: "LA VOZ DE CASTILLA",
+  },
+  cat: {
+    title: "猫",
+    alt: "炮塔里的猫",
+  },
+  map: {
+    first: "第一次点击确定起点。",
+    second: "第二次点击完成这条线。",
+  },
+  calc: {
+    empty: "尚无解。",
+    needRange: "先从红线抄入距离。",
+    needPowder: "装药不够。{charges} 包药最远 {max} 公里。",
+    uglyAngle: "射角难看。换装药。",
+    solution: "射角 {elev}°，{charges} 包药。",
+  },
+  load: {
+    empty: "药室空着。",
+    open: "已选 {shell}，{charges} 包药。药室打开。",
+    rammed: "{shell} + {charges} 包药已上膛。不能退出。",
+  },
+  fire: {
+    empty: "药室里什么都没有。",
+    notArmed: "火炮尚未待发。",
+    hit: "{shell} 命中 {name}（{grid}）。",
+    missNear: "弹着 {grid}。相对 {name}：{range}，{side}。",
+    missOpen: "弹着 {grid}。那里没有标记。{title} 仍未结束。",
+    long: "偏远",
+    short: "偏近",
+    rangeGood: "距离合适",
+    left: "偏左",
+    right: "偏右",
+    line: "方向正确",
+  },
+  shell: {
+    HE: { name: "高爆弹", job: "软目标、火炮、步兵" },
+    AP: { name: "穿甲弹", job: "地堡、指挥所、硬化目标" },
+    STAR: { name: "照明弹", job: "照亮。不杀伤。" },
+    SMK: { name: "发烟弹", job: "遮蔽地段。不杀伤。" },
+    PRPG: { name: "传单弹", job: "传单。和平收场。" },
+  },
+  marker: {
+    nest: "铁巢",
+    t1: "目标 1",
+    alfa: "阿尔法",
+    bravo: "布拉沃",
+    battery: "敌射击指挥所",
+    city: "巴塞罗那",
+    hq: "最高统帅部",
+    fix: "交会",
+    dead: "{name} 已摧毁",
+  },
+  chip: {
+    coord: "{grid} {name}",
+    bearing: "{name} {deg}°",
+  },
+  ending: {
+    celebration: {
+      title: "一座欢庆的城",
+      kicker: "巴塞罗那在印刷传单。",
+      body: "铁巢没有对这座城市打出杀伤弹。共和派放下了武器。卡斯蒂利亚的报纸称之为仁慈。操作员留下了拉火绳，也留下了选择。",
+    },
+    silent: {
+      title: "一座沉默的城",
+      kicker: "最高统帅部感到满意。",
+      body: "最后一座共和派城市在地图上成了弹坑。将军谈起皇家帝国，以及北进。铁巢安静了。巴塞罗那也是。",
+    },
+    road: {
+      title: "未曾走过的路",
+      kicker: "炮口转向了内侧。",
+      body: "最高统帅部从电波里消失。十年后，半岛仍在，外围又多了几座铁巢，而欧洲其余地方在燃烧。报纸上没有操作员的名字。",
+    },
+  },
+  mission: {
+    calibration: {
+      title: "校射",
+      date: "1927年10月12日",
+      place: "阿兰胡埃斯",
+      command:
+        "最高统帅部致铁巢：\n开始校射试验。\n\n- 在地图上标出至目标的弹道。\n- 对目标发射高爆弹。\n\n铁巢位置 - C3 5:5\n\n目标坐标：\n目标1 位于 N8 2:2\n\n荣耀归于卡斯蒂利亚！",
+      front: "阿兰胡埃斯观察：民用医院在校射点以东。统帅部不再作补充。",
+      coach: [
+        "按下红色的目标芯片。地图上会落下标记。",
+        "红笔：先点铁巢，再点目标。这条线就是射击方位和距离。",
+        "抄录卡片，选 4 包药，然后解算。",
+        "装填 HE，推入相同包数，按卡片瞄准，待发，开火。",
+      ],
+      paperHitHeadline: "医院爆炸被归咎于共和派恐怖分子",
+      paperHitLede:
+        "新型步行炮台的一发校射弹击中阿兰胡埃斯附近的民用病房。最高统帅部对混淆表示遗憾。操作员因精度受到嘉奖。",
+      paperMissHeadline: "步行炮台首发偏远",
+      paperMissLede: "农夫报告空地里出现弹坑。最高统帅部要求操作员再试。铁巢仍未被证明。",
+    },
+    light: {
+      title: "火力与照明",
+      date: "1927年10月19日",
+      place: "雷阿尔城",
+      command:
+        "最高统帅部致铁巢：\n河西有敌射击指挥所。摧毁它。\n\n铁巢 - D2 5:5\n观察所阿尔法 - B9 0:0\n观察所布拉沃 - R4 0:0\n\n目标没有给网格。用观察所交会定位，然后发射 HE 或 AP。\n若无把握，可先用照明弹照亮地面。\n\n荣耀归于卡斯蒂利亚！",
+      front:
+        "阿尔法：我站方向 {alfa}° 见炮口焰。\n布拉沃：同一炮兵在方位 {bravo}°。\n我们没有距离。不要把我们的方位抄进炮塔。那是定位。你从铁巢开火。",
+      coach: [
+        "黄色芯片画出观察射线。两条射线交出位置。",
+        "从铁巢拉红线到交会点。那是炮塔方位，不是阿尔法的方位。",
+        "若要照亮地面，先打 STAR，再用 HE 或 AP 消灭射击指挥所。",
+        "手轮不好调就按卡片瞄准。然后待发、开火。",
+      ],
+      paperHitHeadline: "雷阿尔城外叛军火炮被压制",
+      paperHitLede: "步行炮台用两份观察报告交会，找到隐蔽的射击指挥所。忠于王室的纵队在黎明推进。",
+      paperMissHeadline: "反炮兵仍在搜寻",
+      paperMissLede: "观察所请铁巢再打一次交会。不要打观察所方位。从铁巢开火。",
+    },
+    white: {
+      title: "白弹",
+      date: "1928年11月10日",
+      place: "巴塞罗那",
+      command:
+        "最高统帅部致铁巢：\n叛军被困在巴塞罗那。向城市开火。今夜结束战争。\n\n铁巢 - B2 0:0\n市中心 - N8 5:5\n\n已授权杀伤弹。本野战手册中，化学与原子弹种以高爆弹代表。\n\n荣耀归于卡斯蒂利亚！",
+      front:
+        "巴塞罗那民兵在广场上堆起步枪。他们会接受传单。他们扛不住高爆弹。\n\n一名参谋，非正式：统帅部位于你西面的 C5 2:2。若铁巢曾有自己的意志，就是今夜。",
+      coach: [
+        "三种收场。传单打城市。高爆打城市。高爆打最高统帅部。",
+        "对巴塞罗那打 PRPG，战争在没有弹坑的情况下结束。",
+        "对巴塞罗那打 HE，就是书面命令。",
+        "对最高统帅部打 HE 或 AP，是叛变，也是另一张地图。",
+      ],
+      paperHitHeadline: "巴塞罗那：最后一份电文",
+      paperHitLede: "操作员开了火。其余都是铅字。",
+      paperMissHeadline: "弹着落在城外",
+      paperMissLede: "最高统帅部重复命令。铁巢还有炮弹。",
+    },
+  },
+};

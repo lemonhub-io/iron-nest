@@ -1,0 +1,24 @@
+{
+  "name": "iron-nest-field-manual",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "vite": "^6.2.0"
+  },
+  "dependencies": {
+    "@fontsource/archivo-black": "^5.2.5",
+    "@fontsource/caveat": "^5.2.5",
+    "@fontsource/noto-sans-sc": "^5.3.0",
+    "@fontsource/special-elite": "^5.2.5"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true
+  }
+}

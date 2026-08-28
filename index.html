@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>IRON NEST Field Manual</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect fill='%231c1612' width='16' height='16'/><rect fill='%23c43c2c' x='3' y='3' width='10' height='2'/></svg>" />
+  </head>
+  <body>
+    <div id="grain"></div>
+
+    <section id="boot" class="screen">
+      <div class="boot-sheet">
+        <div class="lang boot-lang">
+          <button type="button" data-lang="en" aria-pressed="true">EN</button>
+          <button type="button" data-lang="zh" aria-pressed="false">中文</button>
+        </div>
+        <p class="stamp" data-i18n="boot.stamp">GLORY TO CASTILE</p>
+        <h1>IRON NEST</h1>
+        <p class="sub" data-i18n="boot.sub">FIELD MANUAL</p>
+        <p class="tag" data-i18n="boot.tag">Heavy Turret Simulator</p>
+        <div class="boot-rule"></div>
+        <p class="boot-lede" data-i18n="boot.lede">
+          You are the Operator. High Command sends a grid. You plot it, solve the angle,
+          load the gun, and fire. The Nest never leaves the paper.
+        </p>
+        <ol class="boot-steps">
+          <li data-i18n="boot.step1">Mark the map from the teleprinter.</li>
+          <li data-i18n="boot.step2">Red line from the Nest to the target. That is bearing and range.</li>
+          <li data-i18n="boot.step3">Calculate powder. Load. Lay. Fire.</li>
+        </ol>
+        <button id="begin" type="button" data-i18n="boot.begin">BEGIN DUTY</button>
+        <p class="boot-foot" data-i18n="boot.foot">Three operations. One closed loop. A 2D field-manual recreation.</p>
+      </div>
+    </section>
+
+    <section id="duty" class="screen hidden">
+      <header class="topbar">
+        <div class="brand">
+          <strong>IRON NEST</strong>
+          <span data-i18n="duty.brandSub">FIELD MANUAL</span>
+        </div>
+        <div id="mission-meta" class="meta"></div>
+        <div class="top-right">
+          <div class="lang">
+            <button type="button" data-lang="en">EN</button>
+            <button type="button" data-lang="zh">中文</button>
+          </div>
+          <div id="clock" class="meta" data-i18n="duty.clock">DUTY</div>
+        </div>
+      </header>
+
+      <div class="desk">
+        <aside class="col left">
+          <article class="panel tele">
+            <div class="panel-head">
+              <span data-i18n="duty.teleprinter">TELEPRINTER</span>
+              <div class="wires">
+                <button type="button" data-wire="command" class="wire on" data-i18n="duty.command">COMMAND</button>
+                <button type="button" data-wire="front" class="wire" data-i18n="duty.front">FRONT</button>
+              </div>
+            </div>
+            <pre id="dispatch" class="dispatch"></pre>
+            <div id="chips" class="chips"></div>
+          </article>
+
+          <article class="panel shells">
+            <div class="panel-head"><span data-i18n="duty.rack">AMMUNITION RACK</span></div>
+            <div id="rack" class="rack"></div>
+            <div class="pucks">
+              <span data-i18n="duty.powder">POWDER</span>
+              <div id="pucks" class="puck-row"></div>
+            </div>
+            <button id="ram" type="button" class="heavy" data-i18n="duty.ram">RAM BREECH</button>
+            <p id="load-state" class="note"></p>
+          </article>
+        </aside>
+
+        <main class="col mapcol">
+          <article class="panel map-panel">
+            <div class="panel-head">
+              <span data-i18n="duty.map">TACTICAL MAP</span>
+              <span id="map-readout" class="tiny"></span>
+            </div>
+            <div class="tools">
+              <button type="button" data-tool="red" class="tool on" data-i18n="duty.red">RED LINE</button>
+              <button type="button" data-tool="yellow" class="tool" data-i18n="duty.yellow">YELLOW RAY</button>
+              <button type="button" data-tool="white" class="tool" data-i18n="duty.white">PENCIL</button>
+              <button type="button" data-tool="erase" class="tool" data-i18n="duty.erase">ERASE</button>
+              <button type="button" id="clear-plot" class="tool ghost" data-i18n="duty.clear">CLEAR</button>
+            </div>
+            <canvas id="map"></canvas>
+            <p class="map-help" data-i18n="duty.mapHelp">Click two points. Red copies bearing and range to the card.</p>
+          </article>
+        </main>
+
+        <aside class="col right">
+          <article class="panel clip">
+            <div class="panel-head"><span data-i18n="duty.card">FIRING CARD</span></div>
+            <dl id="card" class="card"></dl>
+          </article>
+
+          <article class="panel calc">
+            <div class="panel-head"><span data-i18n="duty.calc">BALLISTIC CALCULATOR</span></div>
+            <label><span data-i18n="duty.rangeKm">RANGE KM</span>
+              <input id="calc-range" type="number" min="0" max="32" step="0.01" />
+            </label>
+            <div class="row">
+              <button type="button" id="copy-range" class="small" data-i18n="duty.copyRange">COPY RANGE</button>
+            </div>
+            <div id="calc-pucks" class="puck-row"></div>
+            <button id="calculate" type="button" class="heavy" data-i18n="duty.calculate">CALCULATE</button>
+            <p id="calc-out" class="note"></p>
+          </article>
+
+          <article class="panel gun">
+            <div class="panel-head"><span data-i18n="duty.gun">GUN LAY</span></div>
+            <label><span data-i18n="duty.bearing">BEARING</span>
+              <input id="bearing" type="range" min="0" max="360" step="0.1" />
+              <output id="bearing-out">0.0°</output>
+            </label>
+            <label><span data-i18n="duty.elevation">ELEVATION</span>
+              <input id="elev" type="range" min="5" max="75" step="0.1" />
+              <output id="elev-out">20.0°</output>
+            </label>
+            <div class="row">
+              <button type="button" id="lay" class="small" data-i18n="duty.lay">LAY FROM CARD</button>
+              <button type="button" id="arm" class="small" data-i18n="duty.arm">ARM</button>
+            </div>
+            <button id="fire" type="button" class="fire" data-i18n="duty.fire">FIRE</button>
+          </article>
+        </aside>
+      </div>
+
+      <footer class="bottom">
+        <div class="coach">
+          <p id="coach"></p>
+          <button type="button" id="hint" class="small" data-i18n="duty.hint">NEXT HINT</button>
+        </div>
+        <p id="result" class="result"></p>
+        <button type="button" id="cat" class="cat" data-i18n-title="cat.title">
+          <img src="/assets/cat.jpg" data-i18n-alt="cat.alt" alt="Turret cat" />
+        </button>
+      </footer>
+    </section>
+
+    <section id="paper" class="screen hidden">
+      <article class="broadsheet">
+        <div class="lang boot-lang">
+          <button type="button" data-lang="en">EN</button>
+          <button type="button" data-lang="zh">中文</button>
+        </div>
+        <p class="stamp" id="paper-mast"></p>
+        <h2 id="paper-head"></h2>
+        <p id="paper-lede"></p>
+        <div class="recon">
+          <img src="/assets/recon.jpg" data-i18n-alt="paper.reconAlt" alt="Aerial print" />
+        </div>
+        <button id="paper-next" type="button" data-i18n="paper.continue">CONTINUE</button>
+      </article>
+    </section>
+
+    <section id="ending" class="screen hidden">
+      <article class="broadsheet end">
+        <div class="lang boot-lang">
+          <button type="button" data-lang="en">EN</button>
+          <button type="button" data-lang="zh">中文</button>
+        </div>
+        <p class="stamp" data-i18n="paper.final">FINAL DISPATCH</p>
+        <h2 id="end-title"></h2>
+        <p id="end-kicker" class="kicker"></p>
+        <p id="end-body"></p>
+        <button id="again" type="button" data-i18n="paper.again">RETURN TO BARRACKS</button>
+      </article>
+    </section>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
