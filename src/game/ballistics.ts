@@ -84,8 +84,10 @@ export function rangeFromElevation(elevation: number, charges: number): number {
 }
 
 export function flightSeconds(rangeKm: number, charges: number): number {
-  const v = 1.15 * charges;
-  return Math.max(0.8, rangeKm / Math.max(0.6, v));
+  // More charges produce a higher muzzle velocity. Keep this deliberately
+  // slow so the tracer remains readable during the firing sequence.
+  const velocity = 0.55 * Math.max(1, charges);
+  return rangeKm / velocity;
 }
 
 export interface ShotInput {

@@ -1,0 +1,20 @@
+{
+  "name": "IRON NEST Field Manual",
+  "short_name": "IRON NEST",
+  "description": "A heavy-turret field-manual simulator.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#e4d8bc",
+  "theme_color": "#1c1612",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icons/iron-nest.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

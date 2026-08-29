@@ -1,0 +1,10 @@
+<!-- Copyright (c) 2026 lemonhub-io; SPDX-License-Identifier: AGPL-3.0-or-later -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#e4d8bc"/>
+  <rect x="42" y="42" width="428" height="428" fill="#1c1612"/>
+  <path d="M90 356h332l-26-137H116z" fill="#4f5e47" stroke="#e4d8bc" stroke-width="16" stroke-linejoin="round"/>
+  <circle cx="256" cy="288" r="78" fill="#364133" stroke="#e4d8bc" stroke-width="16"/>
+  <path d="M229 218V84h54v134" fill="#2f3a30" stroke="#e4d8bc" stroke-width="16"/>
+  <path d="M214 84h84v34h-84z" fill="#c43c2c"/>
+  <path d="M130 394h252" stroke="#c43c2c" stroke-width="18"/>
+</svg>

@@ -97,6 +97,16 @@ export function applyDom(root: ParentNode | null = typeof document === "undefine
     const key = el.dataset.i18nAlt;
     if (key) el.setAttribute("alt", t(key));
   });
+  root.querySelectorAll<HTMLElement>("[data-i18n-aria-label]").forEach((el) => {
+    const key = el.dataset.i18nAriaLabel;
+    if (key) el.setAttribute("aria-label", t(key));
+  });
+  root.querySelectorAll<HTMLElement>("[data-i18n-placeholder]").forEach((el) => {
+    const key = el.dataset.i18nPlaceholder;
+    if (!key) return;
+    if (el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement) el.placeholder = t(key);
+    else el.dataset.placeholder = t(key);
+  });
   document.querySelectorAll<HTMLButtonElement>("[data-lang]").forEach((b) => {
     b.classList.toggle("on", b.dataset.lang === locale);
     b.setAttribute("aria-pressed", b.dataset.lang === locale ? "true" : "false");

@@ -9,6 +9,7 @@ import "./style.css";
 import { SHELLS, type ShellId } from "./game/ballistics";
 import { sfx } from "./game/audio";
 import { createEngine, type CalcError, type FallNote } from "./game/engine";
+import { bearingDeg, rangeKm } from "./game/geo";
 import { mountMap } from "./ui/map";
 import { applyDom, getLocale, setLocale, subscribeLocale, t, tList, type Locale } from "./i18n";
 
@@ -45,6 +46,12 @@ const mapReadout = $<HTMLSpanElement>("map-readout");
 const fireBtn = $<HTMLButtonElement>("fire");
 const ramBtn = $<HTMLButtonElement>("ram");
 const armBtn = $<HTMLButtonElement>("arm");
+const stickyNote = $<HTMLElement>("sticky-note");
+const noteText = $<HTMLDivElement>("note-text");
+const noteClose = $<HTMLButtonElement>("note-close");
+const noteSelectionMenu = $<HTMLElement>("note-selection-menu");
+const noteCopy = $<HTMLButtonElement>("note-copy");
+const noteDelete = $<HTMLButtonElement>("note-delete");
 
 const map = mountMap($<HTMLCanvasElement>("map"), engine);
 let lastChipSig = "";
@@ -53,6 +60,21 @@ let lastWhir = 0;
 let lastScratch = 0;
 let visibleScreen: HTMLElement | null = null;
 let lastMissionIndex = -1;
+let dispatchSource = "";
+let dispatchTimer: number | null = null;
+let dispatchToken = 0;
+let noteOpen = false;
+let noteContent = "";
+let noteAnchor = 0;
+let noteFocus = 0;
+let noteDragging = false;
+const NOTE_STORAGE = "iron-nest-field-note";
+
+try {
+  noteContent = localStorage.getItem(NOTE_STORAGE) ?? "";
+} catch {
+  /* local storage may be unavailable */
+}
 
 const STATIONS = ["tele", "map", "ammo", "calc", "gun"] as const;
 type Station = (typeof STATIONS)[number];
@@ -103,6 +125,110 @@ function show(el: HTMLElement) {
 
 function markerName(id: string) {
   return t(`marker.${id}`);
+}
+
+function typeDispatch(text: string) {
+  if (text === dispatchSource) return;
+  dispatchSource = text;
+  dispatchToken += 1;
+  const token = dispatchToken;
+  if (dispatchTimer != null) window.clearTimeout(dispatchTimer);
+  dispatch.textContent = "";
+  dispatch.classList.add("typing");
+
+  let index = 0;
+  const printNext = () => {
+    if (token !== dispatchToken) return;
+    index += 1;
+    dispatch.textContent = text.slice(0, index);
+    if (index >= text.length) {
+      dispatch.classList.remove("typing");
+      dispatchTimer = null;
+      return;
+    }
+    const last = text[index - 1];
+    const delay = last === "\n" ? 260 : last === " " ? 22 : 58;
+    dispatchTimer = window.setTimeout(printNext, delay);
+  };
+  dispatchTimer = window.setTimeout(printNext, 220);
+}
+
+function noteSelection() {
+  return {
+    start: Math.min(noteAnchor, noteFocus),
+    end: Math.max(noteAnchor, noteFocus),
+  };
+}
+
+function persistNote() {
+  try {
+    localStorage.setItem(NOTE_STORAGE, noteContent);
+  } catch {
+    /* local storage may be unavailable */
+  }
+}
+
+function renderNote() {
+  const { start, end } = noteSelection();
+  noteText.replaceChildren();
+  if (!noteContent) {
+    const placeholder = document.createElement("span");
+    placeholder.className = "note-placeholder";
+    placeholder.textContent = noteText.dataset.placeholder ?? "";
+    noteText.appendChild(placeholder);
+  }
+  for (let index = 0; index <= noteContent.length; index += 1) {
+    if (start === end && index === noteFocus) {
+      const caret = document.createElement("i");
+      caret.className = "note-caret";
+      noteText.appendChild(caret);
+    }
+    if (index === noteContent.length) continue;
+    const char = document.createElement("span");
+    char.className = "note-char";
+    char.dataset.noteIndex = String(index);
+    if (index >= start && index < end) char.classList.add("selected");
+    if (noteContent[index] === "\n") {
+      char.classList.add("note-break");
+      char.textContent = "\u00a0";
+    } else {
+      char.textContent = noteContent[index] === " " ? "\u00a0" : noteContent[index];
+    }
+    noteText.appendChild(char);
+  }
+  const endMarker = document.createElement("span");
+  endMarker.className = "note-end";
+  endMarker.dataset.noteIndex = String(noteContent.length);
+  noteText.appendChild(endMarker);
+  noteSelectionMenu.classList.toggle("hidden", start === end);
+}
+
+function focusNote() {
+  noteText.focus();
+  noteText.classList.add("focused");
+}
+
+function setNoteSelection(anchor: number, focus: number) {
+  const last = noteContent.length;
+  noteAnchor = Math.max(0, Math.min(last, anchor));
+  noteFocus = Math.max(0, Math.min(last, focus));
+  renderNote();
+}
+
+function replaceNoteSelection(text: string) {
+  const { start, end } = noteSelection();
+  noteContent = noteContent.slice(0, start) + text + noteContent.slice(end);
+  const caret = start + text.length;
+  noteAnchor = caret;
+  noteFocus = caret;
+  persistNote();
+  renderNote();
+}
+
+function toggleNote(open = !noteOpen) {
+  noteOpen = open;
+  stickyNote.classList.toggle("hidden", !noteOpen);
+  if (noteOpen) focusNote();
 }
 
 function chipLabel(chip: { kind: string; id?: string; grid?: string; originId?: string; deg?: number }) {
@@ -265,11 +391,6 @@ ramBtn.addEventListener("click", () => {
   engine.ram();
 });
 
-$<HTMLButtonElement>("lay").addEventListener("click", () => {
-  sfx.clunk();
-  engine.layFromCard();
-});
-
 armBtn.addEventListener("click", () => {
   const s = engine.getState();
   if (!s.rammed) {
@@ -285,7 +406,7 @@ applyCorrectionBtn.addEventListener("click", () => {
   engine.applyCorrection();
 });
 
-fireBtn.addEventListener("click", () => {
+function fireWeapon() {
   const s = engine.getState();
   if (!s.rammed || !s.armed || s.screen !== "duty") {
     sfx.deny();
@@ -299,6 +420,171 @@ fireBtn.addEventListener("click", () => {
     /* ignore */
   }
   engine.fire();
+}
+
+fireBtn.addEventListener("click", () => {
+  if (fireBtn.dataset.dragged === "true") {
+    delete fireBtn.dataset.dragged;
+    return;
+  }
+  fireWeapon();
+});
+
+let pullingFire = false;
+
+fireBtn.addEventListener("pointerdown", (event) => {
+  if (fireBtn.disabled) return;
+  pullingFire = true;
+  fireBtn.setPointerCapture(event.pointerId);
+  fireBtn.classList.add("pulling");
+  event.preventDefault();
+});
+
+fireBtn.addEventListener("pointermove", (event) => {
+  if (!pullingFire) return;
+  const rect = fireBtn.getBoundingClientRect();
+  const travel = Math.max(1, rect.height - 48);
+  const progress = Math.max(0, Math.min(1, (event.clientY - rect.top - 24) / travel));
+  fireBtn.style.setProperty("--pull", String(progress));
+  fireBtn.style.setProperty("--pull-offset", `${progress * travel}px`);
+  fireBtn.setAttribute("aria-valuenow", String(Math.round(progress * 100)));
+  event.preventDefault();
+});
+
+function releaseFireLever(event: PointerEvent) {
+  if (!pullingFire) return;
+  const progress = Number(fireBtn.style.getPropertyValue("--pull")) || 0;
+  pullingFire = false;
+  fireBtn.classList.remove("pulling");
+  fireBtn.style.setProperty("--pull", "0");
+  fireBtn.style.setProperty("--pull-offset", "0px");
+  fireBtn.setAttribute("aria-valuenow", "0");
+  if (progress >= 0.88) {
+    fireBtn.dataset.dragged = "true";
+    fireWeapon();
+  }
+  try {
+    fireBtn.releasePointerCapture(event.pointerId);
+  } catch {
+    /* pointer capture may already be released */
+  }
+}
+
+fireBtn.addEventListener("pointerup", releaseFireLever);
+fireBtn.addEventListener("pointercancel", releaseFireLever);
+
+noteClose.addEventListener("click", () => toggleNote(false));
+
+function noteIndexAt(x: number, y: number) {
+  const target = document.elementFromPoint(x, y);
+  const indexed = target?.closest<HTMLElement>("[data-note-index]");
+  return indexed?.dataset.noteIndex == null ? noteContent.length : Number(indexed.dataset.noteIndex);
+}
+
+noteText.addEventListener("pointerdown", (event) => {
+  event.preventDefault();
+  const index = noteIndexAt(event.clientX, event.clientY);
+  noteDragging = true;
+  noteText.setPointerCapture(event.pointerId);
+  setNoteSelection(event.shiftKey ? noteAnchor : index, index);
+  focusNote();
+});
+
+noteText.addEventListener("pointermove", (event) => {
+  if (!noteDragging) return;
+  setNoteSelection(noteAnchor, noteIndexAt(event.clientX, event.clientY));
+});
+
+noteText.addEventListener("pointerup", (event) => {
+  noteDragging = false;
+  try {
+    noteText.releasePointerCapture(event.pointerId);
+  } catch {
+    /* pointer capture may already be released */
+  }
+});
+
+noteText.addEventListener("contextmenu", (event) => {
+  event.preventDefault();
+});
+noteText.addEventListener("dragstart", (event) => event.preventDefault());
+
+noteText.addEventListener("paste", (event) => {
+  event.preventDefault();
+  replaceNoteSelection(event.clipboardData?.getData("text/plain") ?? "");
+});
+
+noteText.addEventListener("keydown", (event) => {
+  event.stopPropagation();
+  const { start, end } = noteSelection();
+  const extend = event.shiftKey;
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "a") {
+    event.preventDefault();
+    setNoteSelection(0, noteContent.length);
+    return;
+  }
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "c") {
+    event.preventDefault();
+    void navigator.clipboard.writeText(noteContent.slice(start, end));
+    return;
+  }
+  if (event.key === "Backspace") {
+    event.preventDefault();
+    if (start !== end) replaceNoteSelection("");
+    else if (start > 0) {
+      noteAnchor = start - 1;
+      noteFocus = start;
+      replaceNoteSelection("");
+    }
+    return;
+  }
+  if (event.key === "Delete") {
+    event.preventDefault();
+    if (start !== end) replaceNoteSelection("");
+    else if (end < noteContent.length) {
+      noteAnchor = end;
+      noteFocus = end + 1;
+      replaceNoteSelection("");
+    }
+    return;
+  }
+  if (event.key === "Enter") {
+    event.preventDefault();
+    replaceNoteSelection("\n");
+    return;
+  }
+  if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+    event.preventDefault();
+    const next = Math.max(0, Math.min(noteContent.length, noteFocus + (event.key === "ArrowLeft" ? -1 : 1)));
+    setNoteSelection(extend ? noteAnchor : next, next);
+    return;
+  }
+  if (event.key === "Home" || event.key === "End") {
+    event.preventDefault();
+    const next = event.key === "Home" ? 0 : noteContent.length;
+    setNoteSelection(extend ? noteAnchor : next, next);
+    return;
+  }
+  if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    event.preventDefault();
+    replaceNoteSelection(event.key);
+  }
+});
+
+noteCopy.addEventListener("click", async () => {
+  const { start, end } = noteSelection();
+  const selected = noteContent.slice(start, end);
+  if (!selected) return;
+  try {
+    await navigator.clipboard.writeText(selected);
+  } catch { /* clipboard permission was not granted */ }
+});
+
+noteDelete.addEventListener("click", () => {
+  const { start, end } = noteSelection();
+  if (start === end) return;
+  replaceNoteSelection("");
+  focusNote();
 });
 
 $<HTMLButtonElement>("hint").addEventListener("click", () => engine.hint());
@@ -322,6 +608,13 @@ bearing.addEventListener("input", () => engine.setGunBearing(Number(bearing.valu
 elev.addEventListener("input", () => engine.setGunElev(Number(elev.value)));
 
 window.addEventListener("keydown", (e) => {
+  if (e.key === "e" || e.key === "E") {
+    if (!(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
+      e.preventDefault();
+      toggleNote();
+    }
+    return;
+  }
   if (e.target instanceof HTMLInputElement && e.target.type === "number") return;
   const s = engine.getState();
   if (s.screen !== "duty") return;
@@ -353,10 +646,6 @@ window.addEventListener("keydown", (e) => {
       engine.arm();
     } else sfx.deny();
   }
-  if (e.key === "l" || e.key === "L") {
-    sfx.clunk();
-    engine.layFromCard();
-  }
   if (e.key === "c" || e.key === "C") {
     sfx.clunk();
     engine.calculate();
@@ -373,6 +662,7 @@ function fmt(n: number | null, u: string) {
 
 function render() {
   applyDom();
+  renderNote();
   const s = engine.getState();
   if (s.screen === "boot") show(boot);
   else if (s.screen === "paper") show(paper);
@@ -391,22 +681,19 @@ function render() {
   for (const c of d.chips) {
     if (c.kind === "bearing") vars[c.originId] = c.deg.toFixed(1);
   }
-  dispatch.textContent = t(d.bodyKey, vars);
+  typeDispatch(t(d.bodyKey, vars));
   const chipSig = `${s.missionIndex}:${s.wire}:${getLocale()}`;
   if (chipSig !== lastChipSig) {
     lastChipSig = chipSig;
     chips.innerHTML = "";
     d.chips.forEach((c, index) => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "chip";
-      b.style.animationDelay = `${index * 45}ms`;
-      b.textContent = chipLabel(c);
-      b.addEventListener("click", () => {
-        sfx.stamp();
-        engine.useChip(c);
-      });
-      chips.appendChild(b);
+      // Coordinate slips are information only. The player must plot their
+      // contents on the map instead of revealing the marker by clicking it.
+      const el = document.createElement("span");
+      el.className = "chip";
+      el.style.animationDelay = `${index * 45}ms`;
+      el.textContent = chipLabel(c);
+      chips.appendChild(el);
     });
   }
 
@@ -546,7 +833,14 @@ function tickUi() {
   map.draw();
   const s = engine.getState();
   const grid = map.hoverGrid();
-  mapReadout.textContent = grid ? grid : s.pending ? t("map.second") : t("map.first");
+  if (s.tool === "yellow" && s.pending && s.hover) {
+    mapReadout.textContent = t("map.yellowReference", {
+      bearing: bearingDeg(s.pending, s.hover).toFixed(1),
+      range: rangeKm(s.pending, s.hover).toFixed(2),
+    });
+  } else {
+    mapReadout.textContent = grid ? grid : s.pending ? t("map.second") : t("map.first");
+  }
   if (document.activeElement !== bearing) bearing.value = String(s.shownBearing);
   if (document.activeElement !== elev) elev.value = String(s.shownElev);
   bearingOut.textContent = `${s.shownBearing.toFixed(1)}°`;
@@ -568,3 +862,11 @@ engine.subscribeTick(tickUi);
 subscribeLocale(render);
 applyDom();
 render();
+
+if (!import.meta.env.DEV && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {
+      /* The game remains playable online if registration is unavailable. */
+    });
+  });
+}

@@ -4,8 +4,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#1c1612" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Iron Nest" />
     <title>IRON NEST Field Manual</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect fill='%231c1612' width='16' height='16'/><rect fill='%23c43c2c' x='3' y='3' width='10' height='2'/></svg>" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/iron-nest.svg" />
   </head>
   <body>
     <div id="grain"></div>
@@ -167,7 +173,6 @@
                 <i class="gauge-tape" aria-hidden="true"></i>
               </label>
               <div class="row gun-actions">
-                <button type="button" id="lay" class="small" data-i18n="duty.lay">LAY FROM CARD</button>
                 <button type="button" id="arm" class="small" data-i18n="duty.arm">ARM</button>
               </div>
             </div>
@@ -177,7 +182,11 @@
                 <span><b data-i18n="duty.breech">BREECH</b><output id="check-powder"></output></span>
                 <span><b data-i18n="duty.laying">LAY</b><output id="check-lay"></output></span>
               </div>
-              <button id="fire" type="button" class="fire" data-i18n="duty.fire">FIRE</button>
+              <button id="fire" type="button" class="fire fire-lever" data-i18n-aria-label="duty.pullFire" aria-valuenow="0">
+                <span class="fire-track" aria-hidden="true"></span>
+                <i class="fire-handle" aria-hidden="true"></i>
+                <span class="fire-label" data-i18n="duty.pullFire">PULL TO FIRE</span>
+              </button>
             </div>
           </div>
         </article>
@@ -193,6 +202,18 @@
           <img src="/assets/cat.webp" data-i18n-alt="cat.alt" alt="Turret cat" />
         </button>
       </footer>
+      <aside id="sticky-note" class="sticky-note hidden" aria-labelledby="sticky-note-title">
+        <div class="sticky-note-head">
+          <p id="sticky-note-title" class="plaque"><span>NOTE</span><b data-i18n="duty.noteTitle">FIELD NOTE</b></p>
+          <button id="note-close" type="button" class="note-close" data-i18n-aria-label="duty.noteClose">×</button>
+        </div>
+        <div id="note-text" class="note-editor" role="textbox" aria-multiline="true" tabindex="0" data-i18n-placeholder="duty.notePlaceholder" data-placeholder="Write a note..."></div>
+        <div id="note-selection-menu" class="note-selection-menu hidden" role="menu">
+          <button id="note-copy" type="button" class="note-action" data-i18n="duty.noteCopy">COPY</button>
+          <button id="note-delete" type="button" class="note-action" data-i18n="duty.noteDelete">DELETE</button>
+        </div>
+        <p class="note-key"><kbd>E</kbd> <span data-i18n="duty.noteToggle">TOGGLE NOTE</span></p>
+      </aside>
     </section>
 
     <section id="paper" class="screen hidden">

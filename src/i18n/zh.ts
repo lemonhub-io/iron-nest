@@ -59,6 +59,13 @@ export const zh: DeepString<typeof en> = {
     arm: "待发",
     armed: "已待发",
     fire: "开火",
+    pullFire: "下拉开火",
+    noteTitle: "野战便签",
+    noteClose: "收起便签",
+    notePlaceholder: "在这里记录……",
+    noteCopy: "复制",
+    noteDelete: "删除",
+    noteToggle: "开关便签",
     hint: "下一条提示",
     cardBearing: "方位",
     cardRange: "距离",
@@ -117,6 +124,7 @@ export const zh: DeepString<typeof en> = {
   map: {
     first: "指针在网格上移动。红线从铁巢引出。",
     second: "松手落图。黄线需要两点或一拖。",
+    yellowReference: "距起点 {range} 公里 · 方位 {bearing}°",
   },
   calc: {
     empty: "尚无解。",

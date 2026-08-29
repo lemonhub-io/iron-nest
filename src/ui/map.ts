@@ -289,7 +289,14 @@ export function mountMap(canvas: HTMLCanvasElement, engine: Engine) {
     ctx.ellipse(1.5, 8, 17, 6.5, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.rotate((gunBearing * Math.PI) / 180);
+    // Bearings are measured in map units, while the canvas can stretch the
+    // map's x/y axes by different pixel ratios. Convert the compass vector
+    // to screen space before rotating the north-facing barrel, otherwise
+    // diagonal shots make the muzzle visibly miss the firing line.
+    const bearing = (gunBearing * Math.PI) / 180;
+    const xScale = p.w / MAP_W;
+    const yScale = p.h / MAP_H;
+    ctx.rotate(Math.atan2(Math.sin(bearing) * xScale, Math.cos(bearing) * yScale));
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
 

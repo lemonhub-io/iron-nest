@@ -15,15 +15,11 @@ import {
   dist,
   formatGrid,
   intersectSeg,
-  lerp,
-  lerpAngle,
-  project,
   rangeKm,
   type Km,
 } from "./geo";
 import {
   buildMissions,
-  type Chip,
   type EndingId,
   type MarkerKind,
   type Mission,
@@ -166,11 +162,8 @@ export function createEngine() {
   const missions = buildMissions();
   const listeners = new Set<() => void>();
   const tickers = new Set<() => void>();
-  // Flight and turret-slew animations must not cancel one another. A shared
-  // token could leave the game on the flight screen when the turret was moved
-  // while a shell was in the air, which also kept the fire control disabled.
+  // Flight animations must not cancel one another when the turret is moved.
   let flightToken = 0;
-  let slewToken = 0;
 
   const state: GameState = {
     screen: "boot",
@@ -220,7 +213,6 @@ export function createEngine() {
 
   function loadMission(i: number) {
     flightToken += 1;
-    slewToken += 1;
     state.missionIndex = i;
     state.markers = cloneMissionMarkers(state.missions[i]);
     state.strokes = [];
@@ -261,7 +253,6 @@ export function createEngine() {
     state.strokes.push({ id: nid(), tool: "red", from: { ...from }, to: { ...to } });
     state.clipboard.bearing = round1(bearingDeg(from, to));
     state.clipboard.range = round2(rangeKm(from, to));
-    state.calcRange = state.clipboard.range;
     bumpCoach(1);
     if (!state.rammed) state.loadCharges = state.calcCharges;
     solveElevation();
@@ -335,30 +326,6 @@ export function createEngine() {
     state.pending = null;
     state.preview = null;
     state.dragging = false;
-    notify();
-  }
-
-  function fireKind(kind: Marker["kind"]) {
-    return kind === "enemy" || kind === "city" || kind === "hq" || kind === "pin";
-  }
-
-  function useChip(chip: Chip) {
-    if (chip.kind === "coord") {
-      const mk = state.markers.find((m) => m.id === chip.id);
-      if (mk) {
-        mk.hidden = false;
-        bumpCoach(1);
-        if (fireKind(mk.kind)) applyRedSolution(nest().pos, mk.pos);
-      }
-    } else {
-      const origin = state.markers.find((m) => m.id === chip.originId);
-      if (origin) {
-        origin.hidden = false;
-        const to = project(origin.pos, chip.deg, 28);
-        pushStroke("yellow", origin.pos, to);
-        bumpCoach(1);
-      }
-    }
     notify();
   }
 
@@ -567,7 +534,6 @@ export function createEngine() {
     state.gunBearing = v;
     state.shownBearing = v;
     state.slewing = false;
-    slewToken += 1;
     notify();
   }
 
@@ -575,41 +541,6 @@ export function createEngine() {
     state.gunElev = Math.max(5, Math.min(75, n));
     state.shownElev = state.gunElev;
     state.slewing = false;
-    slewToken += 1;
-    notify();
-  }
-
-  function almost(a: number, b: number, eps: number) {
-    return Math.abs(a - b) < eps;
-  }
-
-  function startSlew() {
-    state.slewing = true;
-    const token = ++slewToken;
-    const step = () => {
-      if (token !== slewToken) return;
-      state.shownBearing = lerpAngle(state.shownBearing, state.gunBearing, 0.22);
-      state.shownElev = lerp(state.shownElev, state.gunElev, 0.22);
-      const bDone = Math.abs(((((state.shownBearing - state.gunBearing) % 360) + 540) % 360) - 180) < 0.4;
-      const eDone = almost(state.shownElev, state.gunElev, 0.25);
-      if (bDone && eDone) {
-        state.shownBearing = state.gunBearing;
-        state.shownElev = state.gunElev;
-        state.slewing = false;
-        notify();
-        return;
-      }
-      notifyTick();
-      requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  }
-
-  function layFromCard() {
-    if (state.clipboard.bearing != null) state.gunBearing = state.clipboard.bearing;
-    if (state.clipboard.elevation != null) state.gunElev = state.clipboard.elevation;
-    bumpCoach(4);
-    startSlew();
     notify();
   }
 
@@ -676,7 +607,7 @@ export function createEngine() {
 
     const token = ++flightToken;
     const start = performance.now();
-    const dur = Math.min(2200, 620 + flight * 340);
+    const dur = Math.min(7000, 1000 + flight * 520);
 
     const step = (now: number) => {
       if (token !== flightToken) return;
@@ -914,7 +845,6 @@ export function createEngine() {
     startDuty,
     setWire,
     setTool,
-    useChip,
     mapHover,
     mapDown,
     mapUp,
@@ -929,7 +859,6 @@ export function createEngine() {
     ram,
     setGunBearing,
     setGunElev,
-    layFromCard,
     arm,
     fire,
     applyCorrection,

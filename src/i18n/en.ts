@@ -51,6 +51,13 @@ export const en = {
     arm: "ARM",
     armed: "ARMED",
     fire: "FIRE",
+    pullFire: "PULL TO FIRE",
+    noteTitle: "FIELD NOTE",
+    noteClose: "Close field note",
+    notePlaceholder: "Write a note...",
+    noteCopy: "COPY",
+    noteDelete: "DELETE",
+    noteToggle: "TOGGLE NOTE",
     hint: "NEXT HINT",
     cardBearing: "BEARING",
     cardRange: "RANGE",
@@ -109,6 +116,7 @@ export const en = {
   map: {
     first: "Hover the grid. Red line runs from the Nest.",
     second: "Release to plot. Yellow needs two points or a drag.",
+    yellowReference: "{bearing}° · {range} km from start",
   },
   calc: {
     empty: "No solution.",
