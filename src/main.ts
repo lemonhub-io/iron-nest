@@ -52,6 +52,36 @@ let lastImpactAt = -1;
 let lastWhir = 0;
 let lastScratch = 0;
 let visibleScreen: HTMLElement | null = null;
+let lastMissionIndex = -1;
+
+const STATIONS = ["tele", "map", "ammo", "calc", "gun"] as const;
+type Station = (typeof STATIONS)[number];
+let station: Station = "tele";
+
+const PIPE_STATION: Record<"plot" | "calc" | "load" | "lay" | "arm" | "fire", Station> = {
+  plot: "map",
+  calc: "calc",
+  load: "ammo",
+  lay: "gun",
+  arm: "gun",
+  fire: "gun",
+};
+
+function setStation(next: Station, sound = true) {
+  if (station === next) {
+    if (next === "map") requestAnimationFrame(() => map.relayout());
+    return;
+  }
+  station = next;
+  document.querySelectorAll<HTMLElement>(".station").forEach((el) => {
+    el.classList.toggle("on", el.dataset.station === next);
+  });
+  document.querySelectorAll<HTMLButtonElement>(".stations [data-station]").forEach((b) => {
+    b.classList.toggle("on", b.dataset.station === next);
+  });
+  if (sound) sfx.tick();
+  if (next === "map") requestAnimationFrame(() => map.relayout());
+}
 
 function show(el: HTMLElement) {
   for (const s of [boot, duty, paper, ending]) s.classList.toggle("hidden", s !== el);
@@ -60,6 +90,9 @@ function show(el: HTMLElement) {
   el.classList.remove("entering");
   void el.offsetWidth;
   el.classList.add("entering");
+  if (el === duty) requestAnimationFrame(() => {
+    if (station === "map") map.relayout();
+  });
 }
 
 function markerName(id: string) {
@@ -182,6 +215,19 @@ document.querySelectorAll<HTMLButtonElement>("[data-wire]").forEach((b) => {
   });
 });
 
+document.querySelectorAll<HTMLButtonElement>(".stations [data-station]").forEach((b) => {
+  b.addEventListener("click", () => {
+    setStation(b.dataset.station as Station);
+  });
+});
+
+document.querySelectorAll<HTMLElement>("[data-pipe]").forEach((el) => {
+  el.addEventListener("click", () => {
+    const step = el.dataset.pipe as keyof typeof PIPE_STATION;
+    if (step in PIPE_STATION) setStation(PIPE_STATION[step]);
+  });
+});
+
 document.querySelectorAll<HTMLButtonElement>("[data-tool]").forEach((b) => {
   b.addEventListener("click", () => {
     sfx.pencil();
@@ -277,6 +323,13 @@ window.addEventListener("keydown", (e) => {
     engine.cancelPending();
     return;
   }
+  if (e.key === "[" || e.key === "]") {
+    e.preventDefault();
+    const i = STATIONS.indexOf(station);
+    const next = e.key === "]" ? (i + 1) % STATIONS.length : (i + STATIONS.length - 1) % STATIONS.length;
+    setStation(STATIONS[next]);
+    return;
+  }
   if (e.key === "1") engine.selectShell("HE");
   if (e.key === "2") engine.selectShell("AP");
   if (e.key === "3") engine.selectShell("STAR");
@@ -321,6 +374,10 @@ function render() {
   else show(duty);
 
   const m = s.missions[s.missionIndex];
+  if (s.screen === "duty" && s.missionIndex !== lastMissionIndex) {
+    lastMissionIndex = s.missionIndex;
+    setStation("tele", false);
+  }
   missionMeta.textContent = `${t(`mission.${m.id}.date`)}  /  ${t(`mission.${m.id}.place`)}  /  ${t(`mission.${m.id}.title`)}`;
 
   const d = m.dispatches.find((x) => x.source === s.wire) ?? m.dispatches[0];
@@ -432,6 +489,10 @@ function render() {
     const k = el.dataset.pipe as (typeof steps)[number];
     el.classList.toggle("on", pipe[k]);
     el.classList.toggle("next", k === next);
+  });
+  const due = next ? PIPE_STATION[next] : null;
+  document.querySelectorAll<HTMLButtonElement>(".stations [data-station]").forEach((b) => {
+    b.classList.toggle("due", b.dataset.station === due && b.dataset.station !== station);
   });
 
   const latest = s.impacts[s.impacts.length - 1];

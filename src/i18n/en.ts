@@ -76,6 +76,13 @@ export const en = {
     set: "SET",
     ready: "READY",
   },
+  station: {
+    tele: "WIRE",
+    map: "MAP",
+    ammo: "AMMO",
+    calc: "CALC",
+    gun: "GUN",
+  },
   pipe: {
     plot: "PLOT",
     calc: "CALC",

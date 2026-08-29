@@ -84,6 +84,13 @@ export const zh: DeepString<typeof en> = {
     set: "已解",
     ready: "就绪",
   },
+  station: {
+    tele: "电传",
+    map: "地图",
+    ammo: "弹药",
+    calc: "计算",
+    gun: "瞄准",
+  },
   pipe: {
     plot: "标图",
     calc: "解算",

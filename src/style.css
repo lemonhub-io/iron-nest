@@ -194,7 +194,7 @@ input:focus-visible {
   animation: console-arrive 280ms var(--ease-out) both;
 }
 
-#duty.entering .desk {
+#duty.entering .stage {
   animation: console-arrive 380ms var(--ease-out) 45ms both;
 }
 
@@ -378,19 +378,103 @@ input:focus-visible {
   text-align: right;
 }
 
-.desk {
+#duty {
   display: grid;
-  grid-template-columns: 280px 1fr 280px;
-  gap: 10px;
-  padding: 10px;
-  min-height: calc(100dvh - 118px);
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  min-height: 100dvh;
 }
 
-.col {
+.stations {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  border-bottom: 3px solid var(--ink);
+  background: var(--paper-dark);
+}
+
+.stations button {
+  border: 0;
+  border-right: 2px solid var(--ink);
+  padding: 10px 8px;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  background: transparent;
+}
+
+.stations button:last-child {
+  border-right: 0;
+}
+
+.stations button.on {
+  background: var(--paper);
+  box-shadow: inset 0 3px 0 var(--red);
+}
+
+.stations button.due {
+  color: var(--red);
+}
+
+.stage {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
   min-height: 0;
+  padding: 10px;
+}
+
+.station {
+  display: none;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.station.on {
+  display: flex;
+  animation: console-arrive 280ms var(--ease-out) both;
+}
+
+.station[data-station="map"] #map {
+  min-height: 0;
+  flex: 1;
+}
+
+.station[data-station="tele"] .dispatch {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+
+.station[data-station="ammo"] .rack {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  flex: 1;
+  align-content: start;
+}
+
+.station[data-station="ammo"] .shell {
+  min-height: 7rem;
+  align-content: center;
+}
+
+.calc-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 18px;
+  flex: 1;
+  min-height: 0;
+}
+
+.calc-machine,
+.calc-docket {
+  min-height: 0;
+}
+
+.station[data-station="gun"] label {
+  margin-bottom: 16px;
+}
+
+.station[data-station="gun"] .fire {
+  margin-top: auto;
 }
 
 .panel {
@@ -477,8 +561,8 @@ input:focus-visible {
   grid-template-columns: repeat(6, 1fr);
   gap: 4px;
   list-style: none;
-  margin: 6px 0 8px;
-  padding: 0;
+  margin: 0;
+  padding: 8px 10px 0;
 }
 
 .pipe li {
@@ -491,6 +575,7 @@ input:focus-visible {
   letter-spacing: 0.08em;
   background: var(--paper-dark);
   color: var(--muted);
+  cursor: pointer;
   transition: background-color 160ms ease, color 160ms ease, transform 180ms var(--ease-out), box-shadow 180ms var(--ease-out);
 }
 
@@ -859,14 +944,17 @@ input[type="range"] {
 }
 
 @media (max-width: 1100px) {
-  .desk {
+  .stations button {
+    font-size: 0.64rem;
+    padding: 8px 4px;
+    letter-spacing: 0.06em;
+  }
+  .calc-grid,
+  .station[data-station="ammo"] .rack {
     grid-template-columns: 1fr;
   }
-  .dispatch {
-    max-height: 9rem;
-  }
   #map {
-    min-height: 360px;
+    min-height: 280px;
   }
   .bottom {
     grid-template-columns: 1fr auto;
@@ -879,7 +967,7 @@ input[type="range"] {
 @media (prefers-reduced-motion: reduce) {
   #boot.entering .boot-sheet,
   #duty.entering .topbar,
-  #duty.entering .desk,
+  #duty.entering .stage,
   #duty.entering .bottom,
   #paper.entering .broadsheet,
   #ending.entering .broadsheet,

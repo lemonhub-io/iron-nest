@@ -460,6 +460,10 @@ export function mountMap(canvas: HTMLCanvasElement, engine: Engine) {
 
   return {
     draw,
+    relayout() {
+      size();
+      draw();
+    },
     hoverGrid() {
       const h = engine.getState().hover;
       return h ? formatGrid(h) : "";
