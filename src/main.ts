@@ -1,7 +1,10 @@
+/* Copyright (c) 2026 lemonhub-io; SPDX-License-Identifier: AGPL-3.0-or-later */
+
 import "@fontsource/archivo-black";
 import "@fontsource/special-elite";
 import "@fontsource/caveat";
 import "@fontsource/noto-sans-sc/chinese-simplified-400.css";
+import "@fontsource/noto-sans-sc/chinese-simplified-700.css";
 import "./style.css";
 import { SHELLS, type ShellId } from "./game/ballistics";
 import { sfx } from "./game/audio";
@@ -22,6 +25,12 @@ const rack = $<HTMLDivElement>("rack");
 const pucks = $<HTMLDivElement>("pucks");
 const calcPucks = $<HTMLDivElement>("calc-pucks");
 const card = $<HTMLDListElement>("card");
+const shotRecord = $<HTMLParagraphElement>("shot-record");
+const correctionOut = $<HTMLParagraphElement>("correction-out");
+const applyCorrectionBtn = $<HTMLButtonElement>("apply-correction");
+const solutionCheck = $<HTMLOutputElement>("check-solution");
+const powderCheck = $<HTMLOutputElement>("check-powder");
+const layCheck = $<HTMLOutputElement>("check-lay");
 const calcRange = $<HTMLInputElement>("calc-range");
 const calcOut = $<HTMLParagraphElement>("calc-out");
 const loadState = $<HTMLParagraphElement>("load-state");
@@ -42,9 +51,15 @@ let lastChipSig = "";
 let lastImpactAt = -1;
 let lastWhir = 0;
 let lastScratch = 0;
+let visibleScreen: HTMLElement | null = null;
 
 function show(el: HTMLElement) {
   for (const s of [boot, duty, paper, ending]) s.classList.toggle("hidden", s !== el);
+  if (visibleScreen === el) return;
+  visibleScreen = el;
+  el.classList.remove("entering");
+  void el.offsetWidth;
+  el.classList.add("entering");
 }
 
 function markerName(id: string) {
@@ -89,6 +104,22 @@ function fallText(note: FallNote | null) {
   return t("fire.missOpen", {
     grid: note.grid,
     title: t(`mission.${note.missionId}.title`),
+  });
+}
+
+function correctionText(
+  correction: { rangeKm: number; deflectionDeg: number; targetId: string; applied: boolean } | null,
+) {
+  if (!correction) return t("spot.empty");
+  if (correction.applied) return t("spot.applied");
+  const rangeDir = correction.rangeKm >= 0 ? t("spot.add") : t("spot.drop");
+  const deflectionDir = correction.deflectionDeg >= 0 ? t("spot.right") : t("spot.left");
+  return t("spot.correction", {
+    target: markerName(correction.targetId),
+    range: Math.abs(correction.rangeKm).toFixed(1),
+    rangeDir,
+    deflection: Math.abs(correction.deflectionDeg).toFixed(1),
+    deflectionDir,
   });
 }
 
@@ -197,6 +228,11 @@ armBtn.addEventListener("click", () => {
   engine.arm();
 });
 
+applyCorrectionBtn.addEventListener("click", () => {
+  sfx.stamp();
+  engine.applyCorrection();
+});
+
 fireBtn.addEventListener("click", () => {
   const s = engine.getState();
   if (!s.rammed || !s.armed || s.screen !== "duty") {
@@ -297,17 +333,18 @@ function render() {
   if (chipSig !== lastChipSig) {
     lastChipSig = chipSig;
     chips.innerHTML = "";
-    for (const c of d.chips) {
+    d.chips.forEach((c, index) => {
       const b = document.createElement("button");
       b.type = "button";
       b.className = "chip";
+      b.style.animationDelay = `${index * 45}ms`;
       b.textContent = chipLabel(c);
       b.addEventListener("click", () => {
         sfx.stamp();
         engine.useChip(c);
       });
       chips.appendChild(b);
-    }
+    });
   }
 
   document.querySelectorAll<HTMLButtonElement>("[data-wire]").forEach((b) => {
@@ -340,6 +377,25 @@ function render() {
     <dt>${t("duty.cardElev")}</dt><dd>${fmt(cl.elevation, "°")}</dd>
     <dt>${t("duty.cardShell")}</dt><dd>${cl.shell ?? s.selectedShell}</dd>
   `;
+
+  shotRecord.textContent = s.lastShot
+    ? t("spot.round", {
+        round: s.lastShot.round,
+        shell: s.lastShot.shell,
+        charges: s.lastShot.charges,
+        grid: s.lastShot.grid,
+      })
+    : t("spot.noRound");
+  correctionOut.textContent = correctionText(s.correction);
+  applyCorrectionBtn.disabled = !s.correction || s.correction.applied || s.rammed;
+
+  const control = engine.fireControl();
+  solutionCheck.textContent = control.solution ? t("control.set") : t("control.check");
+  powderCheck.textContent = control.powder ? t("control.ready") : t("control.check");
+  layCheck.textContent = control.lay ? t("control.ready") : t("control.check");
+  solutionCheck.classList.toggle("ok", control.solution);
+  powderCheck.classList.toggle("ok", control.powder);
+  layCheck.classList.toggle("ok", control.lay);
 
   calcOut.textContent = calcText(s.calcError, s.calcElev, s.calcCharges);
 

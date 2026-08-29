@@ -1,3 +1,5 @@
+/* Copyright (c) 2026 lemonhub-io; SPDX-License-Identifier: AGPL-3.0-or-later */
+
 import { COLS, MAP_H, MAP_W, bearingDeg, formatGrid, rangeKm, type Km } from "../game/geo";
 import type { Engine, Marker } from "../game/engine";
 import { t } from "../i18n";
@@ -13,7 +15,7 @@ export function mountMap(canvas: HTMLCanvasElement, engine: Engine) {
   const ctx: CanvasRenderingContext2D = raw;
 
   const mapImg = new Image();
-  mapImg.src = "/assets/map.jpg";
+  mapImg.src = "/assets/map.webp";
 
   const pad = { l: 36, r: 18, t: 16, b: 28 };
 
@@ -227,30 +229,7 @@ export function mountMap(canvas: HTMLCanvasElement, engine: Engine) {
     ctx.save();
     ctx.translate(q.x, q.y);
     if (mk.kind === "nest") {
-      const ang = (gunBearing * Math.PI) / 180;
-      ctx.rotate(ang);
-      ctx.fillStyle = "#5c6b4a";
-      ctx.strokeStyle = INK;
-      ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      ctx.rect(-11, -8, 22, 20);
-      ctx.fill();
-      ctx.stroke();
-      ctx.fillRect(-6, -24, 4, 16);
-      ctx.fillRect(2, -24, 4, 16);
-      ctx.strokeRect(-6, -24, 4, 16);
-      ctx.strokeRect(2, -24, 4, 16);
-      for (const [x, y] of [
-        [-11, -8],
-        [11, -8],
-        [-11, 12],
-        [11, 12],
-      ] as const) {
-        ctx.beginPath();
-        ctx.arc(x, y, 3, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-      }
+      drawIronNest(gunBearing);
     } else if (mk.kind === "spotter") {
       ctx.fillStyle = BLUE;
       ctx.beginPath();
@@ -292,7 +271,130 @@ export function mountMap(canvas: HTMLCanvasElement, engine: Engine) {
     ctx.font = "13px 'Caveat', cursive";
     ctx.textAlign = "left";
     const name = t(`marker.${mk.id}`);
-    ctx.fillText(mk.dead ? t("marker.dead", { name }) : name, q.x + 12, q.y - 8);
+    const p = plot();
+    const cell = Math.min(p.w / MAP_W, p.h / MAP_H);
+    const labelOffset = mk.kind === "nest" ? Math.max(14, Math.min(20, cell)) : 12;
+    ctx.fillText(mk.dead ? t("marker.dead", { name }) : name, q.x + labelOffset, q.y - 8);
+  }
+
+  function drawIronNest(gunBearing: number) {
+    const p = plot();
+    const cell = Math.min(p.w / MAP_W, p.h / MAP_H);
+    const scale = Math.max(0.72, Math.min(1.12, cell / 18));
+
+    ctx.save();
+    ctx.scale(scale, scale);
+    ctx.fillStyle = "rgba(28,22,18,0.22)";
+    ctx.beginPath();
+    ctx.ellipse(1.5, 8, 17, 6.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.rotate((gunBearing * Math.PI) / 180);
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+
+    // Four articulated feet make the gun platform feel planted on the map.
+    ctx.strokeStyle = "#2f3a30";
+    ctx.lineWidth = 3.2;
+    for (const [hipX, hipY, footX, footY] of [
+      [-11, -3, -16, 5],
+      [11, -3, 16, 5],
+      [-10, 7, -14, 13],
+      [10, 7, 14, 13],
+    ] as const) {
+      ctx.beginPath();
+      ctx.moveTo(hipX, hipY);
+      ctx.lineTo(footX, footY);
+      ctx.stroke();
+      ctx.fillStyle = "#3e493c";
+      ctx.beginPath();
+      ctx.ellipse(footX, footY, 3.8, 2.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 1.1;
+      ctx.stroke();
+    }
+
+    // Main armored hull, inset plate, and turret ring.
+    ctx.fillStyle = "#4f5e47";
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(-14, -8);
+    ctx.lineTo(14, -8);
+    ctx.lineTo(16, 4);
+    ctx.lineTo(9, 12);
+    ctx.lineTo(-9, 12);
+    ctx.lineTo(-16, 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = "#697956";
+    ctx.beginPath();
+    ctx.moveTo(-10.5, -5.5);
+    ctx.lineTo(10.5, -5.5);
+    ctx.lineTo(12, 3);
+    ctx.lineTo(6.5, 8.5);
+    ctx.lineTo(-6.5, 8.5);
+    ctx.lineTo(-12, 3);
+    ctx.closePath();
+    ctx.fill();
+
+    // Long barrel is drawn behind the turret so the bearing remains unmistakable.
+    ctx.fillStyle = "#2f3a30";
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.35;
+    ctx.beginPath();
+    ctx.rect(-3.4, -31, 6.8, 23);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#1f281f";
+    ctx.fillRect(-4.8, -33, 9.6, 4.4);
+    ctx.strokeRect(-4.8, -33, 9.6, 4.4);
+    ctx.fillStyle = "#879469";
+    ctx.fillRect(-2.2, -26.5, 1.2, 14);
+
+    ctx.fillStyle = "#364133";
+    ctx.beginPath();
+    ctx.arc(0, -2, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = "#6d7c58";
+    ctx.beginPath();
+    ctx.arc(0, -2, 6.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(28,22,18,0.72)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Hatch, sight, rivets, and a muted field marking reward a closer look.
+    ctx.fillStyle = "#263024";
+    ctx.fillRect(-3.8, 1.2, 7.6, 4.8);
+    ctx.strokeStyle = INK;
+    ctx.strokeRect(-3.8, 1.2, 7.6, 4.8);
+    ctx.fillStyle = "#c4a035";
+    ctx.fillRect(7.2, 2.5, 3, 3);
+    ctx.fillStyle = "#d8ccae";
+    for (const [x, y] of [
+      [-9, -2],
+      [9, -2],
+      [-8, 7],
+      [8, 7],
+    ] as const) {
+      ctx.beginPath();
+      ctx.arc(x, y, 0.9, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.strokeStyle = "#d8ccae";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-1.8, -6);
+    ctx.lineTo(1.8, -6);
+    ctx.stroke();
+    ctx.restore();
   }
 
   function star(x: number, y: number, r: number, R: number, n: number) {

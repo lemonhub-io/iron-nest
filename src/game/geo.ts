@@ -1,3 +1,5 @@
+/* Copyright (c) 2026 lemonhub-io; SPDX-License-Identifier: AGPL-3.0-or-later */
+
 export const COLS = "ABCDEFGHIJKLMNOPQRST";
 export const ROWS = 12;
 export const MAP_W = COLS.length;

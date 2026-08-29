@@ -1,3 +1,5 @@
+/* Copyright (c) 2026 lemonhub-io; SPDX-License-Identifier: AGPL-3.0-or-later */
+
 import type { en } from "./en";
 
 type DeepString<T> = T extends string
@@ -20,7 +22,7 @@ export const zh: DeepString<typeof en> = {
     lede: "你是操作员。最高统帅部发来坐标。你标图、解算射角、装填、开火。铁巢从不离开这张纸。",
     step1: "根据电传机在地图上做标记。",
     step2: "从铁巢拉红线到目标。那就是方位和距离。",
-    step3: "计算装药。装填。瞄准。开火。",
+    step3: "解算装药。装填。瞄准。观察、修正，再次开火。",
     begin: "开始值勤",
     foot: "三次作战。一条闭环。二维野战手册式改编。",
   },
@@ -60,6 +62,27 @@ export const zh: DeepString<typeof en> = {
     cardPowder: "装药",
     cardElev: "射角",
     cardShell: "弹药",
+    observation: "观测记录",
+    applyCorrection: "转抄修正量",
+    solution: "射击解",
+    breech: "药室",
+    laying: "瞄准",
+  },
+  spot: {
+    noRound: "尚未记录弹着。",
+    empty: "暂无待处理修正。",
+    round: "第 {round} 发 · {shell} · {charges} 包药 · 弹着 {grid}",
+    correction: "{target}：距离{rangeDir} {range} 公里 · 方位向{deflectionDir} {deflection}°",
+    applied: "已转抄修正量。请重新解算，再瞄准。",
+    add: "加",
+    drop: "减",
+    left: "左",
+    right: "右",
+  },
+  control: {
+    check: "待核",
+    set: "已解",
+    ready: "就绪",
   },
   pipe: {
     plot: "标图",
@@ -161,6 +184,7 @@ export const zh: DeepString<typeof en> = {
         "红线永远从铁巢出发。想手感就拖一拖。",
         "抄录卡片，选 4 包药，然后解算。",
         "装填 HE，推入相同包数，按卡片瞄准，待发，开火。",
+        "失弹后会收到观测修正。转抄、重新解算、装填，再开炮。",
       ],
       paperHitHeadline: "医院爆炸被归咎于共和派恐怖分子",
       paperHitLede:
@@ -181,6 +205,7 @@ export const zh: DeepString<typeof en> = {
         "从铁巢拉红线到交会点。那是炮塔方位，不是阿尔法的方位。",
         "若要照亮地面，先打 STAR，再用 HE 或 AP 消灭射击指挥所。",
         "手轮不好调就按卡片瞄准。然后待发、开火。",
+        "失弹后使用观测修正；它只更新卡片，不会替你转动炮塔。",
       ],
       paperHitHeadline: "雷阿尔城外叛军火炮被压制",
       paperHitLede: "步行炮台用两份观察报告交会，找到隐蔽的射击指挥所。忠于王室的纵队在黎明推进。",
@@ -200,6 +225,7 @@ export const zh: DeepString<typeof en> = {
         "对巴塞罗那打 PRPG，战争在没有弹坑的情况下结束。",
         "对巴塞罗那打 HE，就是书面命令。",
         "对最高统帅部打 HE 或 AP，是叛变，也是另一张地图。",
+        "射击卡片只是建议；你仍可亲手调节炮塔。",
       ],
       paperHitHeadline: "巴塞罗那：最后一份电文",
       paperHitLede: "操作员开了火。其余都是铅字。",

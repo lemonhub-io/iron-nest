@@ -1,3 +1,5 @@
+/* Copyright (c) 2026 lemonhub-io; SPDX-License-Identifier: AGPL-3.0-or-later */
+
 import { bearingDeg, parseGrid, type Km } from "./geo";
 import type { ShellId } from "./ballistics";
 
@@ -77,7 +79,7 @@ export function buildMissions(): Mission[] {
       requiredShell: "HE",
       win: "hit-target",
       targetIds: ["t1"],
-      coachCount: 4,
+      coachCount: 5,
     },
     {
       id: "light",
@@ -110,7 +112,7 @@ export function buildMissions(): Mission[] {
       ],
       win: "hit-target",
       targetIds: ["battery"],
-      coachCount: 4,
+      coachCount: 5,
     },
     {
       id: "white",
@@ -138,7 +140,7 @@ export function buildMissions(): Mission[] {
       ],
       win: "choice",
       targetIds: ["city", "hq"],
-      coachCount: 4,
+      coachCount: 5,
     },
   ];
 }

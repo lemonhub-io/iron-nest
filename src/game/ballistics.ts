@@ -1,3 +1,5 @@
+/* Copyright (c) 2026 lemonhub-io; SPDX-License-Identifier: AGPL-3.0-or-later */
+
 import { angleDelta, project, type Km } from "./geo";
 
 export type ShellId = "HE" | "AP" | "STAR" | "SMK" | "PRPG";

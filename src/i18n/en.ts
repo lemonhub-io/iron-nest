@@ -1,3 +1,5 @@
+/* Copyright (c) 2026 lemonhub-io; SPDX-License-Identifier: AGPL-3.0-or-later */
+
 export const en = {
   app: {
     title: "IRON NEST Field Manual",
@@ -12,7 +14,7 @@ export const en = {
     lede: "You are the Operator. High Command sends a grid. You plot it, solve the angle, load the gun, and fire. The Nest never leaves the paper.",
     step1: "Mark the map from the teleprinter.",
     step2: "Red line from the Nest to the target. That is bearing and range.",
-    step3: "Calculate powder. Load. Lay. Fire.",
+    step3: "Calculate powder. Load. Lay. Observe, correct, fire again.",
     begin: "BEGIN DUTY",
     foot: "Three operations. One closed loop. A 2D field-manual recreation.",
   },
@@ -52,6 +54,27 @@ export const en = {
     cardPowder: "POWDER",
     cardElev: "ELEV",
     cardShell: "SHELL",
+    observation: "OBSERVER'S NOTE",
+    applyCorrection: "TRANSFER CORRECTION",
+    solution: "SOLUTION",
+    breech: "BREECH",
+    laying: "LAY",
+  },
+  spot: {
+    noRound: "NO ROUND RECORDED.",
+    empty: "NO CORRECTION PENDING.",
+    round: "ROUND {round} · {shell} · {charges} CHG · IMPACT {grid}",
+    correction: "{target}: {rangeDir} {range} KM · {deflectionDir} {deflection}°",
+    applied: "CORRECTION TRANSFERRED. RECALCULATE, THEN LAY.",
+    add: "ADD",
+    drop: "DROP",
+    left: "LEFT",
+    right: "RIGHT",
+  },
+  control: {
+    check: "CHECK",
+    set: "SET",
+    ready: "READY",
   },
   pipe: {
     plot: "PLOT",
@@ -154,6 +177,7 @@ export const en = {
         "The red line always starts at the Nest. Drag if you want to feel the plot.",
         "COPY the card, pick 4 powder, then CALCULATE.",
         "Load HE, ram the same powder count, LAY FROM CARD, ARM, FIRE.",
+        "A miss produces an observer correction. Transfer it, recalculate, reload, and fire again.",
       ],
       paperHitHeadline: "Hospital blast laid on republican terrorists",
       paperHitLede:
@@ -175,6 +199,7 @@ export const en = {
         "Red pencil from the Nest to the intersection. That is the turret bearing, not Alfa's.",
         "STAR first if you want the ground lit. Then HE or AP to kill the FDC.",
         "LAY FROM CARD if the wheels fight you. Then ARM and FIRE.",
+        "Use the observer's correction after a miss; it updates the card, not the gun.",
       ],
       paperHitHeadline: "Rebel guns silenced outside Ciudad Real",
       paperHitLede:
@@ -196,6 +221,7 @@ export const en = {
         "PRPG on Barcelona ends the war without a crater.",
         "HE on Barcelona is the order as written.",
         "HE or AP on High Command is treason, and a different map.",
+        "A firing card is advice. You may still work the wheels yourself.",
       ],
       paperHitHeadline: "Barcelona: the last dispatch",
       paperHitLede: "The Operator fired. The rest is type.",

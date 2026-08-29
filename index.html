@@ -1,3 +1,4 @@
+<!-- Copyright (c) 2026 lemonhub-io; SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -106,6 +107,12 @@
           <article class="panel clip">
             <div class="panel-head"><span data-i18n="duty.card">FIRING CARD</span></div>
             <dl id="card" class="card"></dl>
+            <div class="observation">
+              <div class="panel-head"><span data-i18n="duty.observation">OBSERVER'S NOTE</span></div>
+              <p id="shot-record" class="shot-record"></p>
+              <p id="correction-out" class="correction"></p>
+              <button id="apply-correction" type="button" class="small" data-i18n="duty.applyCorrection">TRANSFER CORRECTION</button>
+            </div>
           </article>
 
           <article class="panel calc">
@@ -131,6 +138,11 @@
               <input id="elev" type="range" min="5" max="75" step="0.1" />
               <output id="elev-out">20.0°</output>
             </label>
+            <div class="control-checks" aria-label="Fire control checks">
+              <span><b data-i18n="duty.solution">SOLUTION</b><output id="check-solution"></output></span>
+              <span><b data-i18n="duty.breech">BREECH</b><output id="check-powder"></output></span>
+              <span><b data-i18n="duty.laying">LAY</b><output id="check-lay"></output></span>
+            </div>
             <div class="row">
               <button type="button" id="lay" class="small" data-i18n="duty.lay">LAY FROM CARD</button>
               <button type="button" id="arm" class="small" data-i18n="duty.arm">ARM</button>
@@ -147,7 +159,7 @@
         </div>
         <p id="result" class="result"></p>
         <button type="button" id="cat" class="cat" data-i18n-title="cat.title">
-          <img src="/assets/cat.jpg" data-i18n-alt="cat.alt" alt="Turret cat" />
+          <img src="/assets/cat.webp" data-i18n-alt="cat.alt" alt="Turret cat" />
         </button>
       </footer>
     </section>
@@ -162,7 +174,7 @@
         <h2 id="paper-head"></h2>
         <p id="paper-lede"></p>
         <div class="recon">
-          <img src="/assets/recon.jpg" data-i18n-alt="paper.reconAlt" alt="Aerial print" />
+          <img src="/assets/recon.webp" data-i18n-alt="paper.reconAlt" alt="Aerial print" />
         </div>
         <button id="paper-next" type="button" data-i18n="paper.continue">CONTINUE</button>
       </article>

@@ -1,3 +1,5 @@
+/* Copyright (c) 2026 lemonhub-io; SPDX-License-Identifier: AGPL-3.0-or-later */
+
 import {
   SHELLS,
   elevationFor,
@@ -8,6 +10,7 @@ import {
 } from "./ballistics";
 import {
   bearingDeg,
+  angleDelta,
   clampKm,
   dist,
   formatGrid,
@@ -76,6 +79,22 @@ export interface Impact {
   at: number;
 }
 
+export interface SpotCorrection {
+  targetId: string;
+  rangeKm: number;
+  deflectionDeg: number;
+  applied: boolean;
+}
+
+export interface ShotRecord {
+  round: number;
+  shell: ShellId;
+  charges: number;
+  bearing: number;
+  elevation: number;
+  grid: string;
+}
+
 export type PipeStep = "plot" | "calc" | "load" | "lay" | "arm" | "fire";
 
 export interface Clipboard {
@@ -113,6 +132,8 @@ export interface GameState {
   slewing: boolean;
   armed: boolean;
   impacts: Impact[];
+  lastShot: ShotRecord | null;
+  correction: SpotCorrection | null;
   tracer: { from: Km; to: Km; t: number } | null;
   missCount: number;
   coachIndex: number;
@@ -145,7 +166,11 @@ export function createEngine() {
   const missions = buildMissions();
   const listeners = new Set<() => void>();
   const tickers = new Set<() => void>();
-  let animToken = 0;
+  // Flight and turret-slew animations must not cancel one another. A shared
+  // token could leave the game on the flight screen when the turret was moved
+  // while a shell was in the air, which also kept the fire control disabled.
+  let flightToken = 0;
+  let slewToken = 0;
 
   const state: GameState = {
     screen: "boot",
@@ -174,6 +199,8 @@ export function createEngine() {
     slewing: false,
     armed: false,
     impacts: [],
+    lastShot: null,
+    correction: null,
     tracer: null,
     missCount: 0,
     coachIndex: 0,
@@ -192,7 +219,8 @@ export function createEngine() {
   const nest = (): Marker => state.markers.find((m) => m.kind === "nest")!;
 
   function loadMission(i: number) {
-    animToken += 1;
+    flightToken += 1;
+    slewToken += 1;
     state.missionIndex = i;
     state.markers = cloneMissionMarkers(state.missions[i]);
     state.strokes = [];
@@ -215,6 +243,8 @@ export function createEngine() {
     state.slewing = false;
     state.armed = false;
     state.impacts = [];
+    state.lastShot = null;
+    state.correction = null;
     state.tracer = null;
     state.missCount = 0;
     state.coachIndex = 0;
@@ -537,7 +567,7 @@ export function createEngine() {
     state.gunBearing = v;
     state.shownBearing = v;
     state.slewing = false;
-    animToken += 1;
+    slewToken += 1;
     notify();
   }
 
@@ -545,7 +575,7 @@ export function createEngine() {
     state.gunElev = Math.max(5, Math.min(75, n));
     state.shownElev = state.gunElev;
     state.slewing = false;
-    animToken += 1;
+    slewToken += 1;
     notify();
   }
 
@@ -555,9 +585,9 @@ export function createEngine() {
 
   function startSlew() {
     state.slewing = true;
-    const token = ++animToken;
+    const token = ++slewToken;
     const step = () => {
-      if (token !== animToken) return;
+      if (token !== slewToken) return;
       state.shownBearing = lerpAngle(state.shownBearing, state.gunBearing, 0.22);
       state.shownElev = lerp(state.shownElev, state.gunElev, 0.22);
       const bDone = Math.abs(((((state.shownBearing - state.gunBearing) % 360) + 540) % 360) - 180) < 0.4;
@@ -629,9 +659,12 @@ export function createEngine() {
     });
     const shell = state.selectedShell;
     const spec = SHELLS[shell];
+    const firingBearing = state.gunBearing;
+    const firingElevation = state.gunElev;
     state.shake = 1;
     state.rammed = false;
     state.armed = false;
+    state.correction = null;
     bumpCoach(5);
 
     const impact = shot.impact;
@@ -641,12 +674,12 @@ export function createEngine() {
     state.tracer = { from: n.pos, to: impact, t: 0 };
     notify();
 
-    const token = ++animToken;
+    const token = ++flightToken;
     const start = performance.now();
     const dur = Math.min(2200, 620 + flight * 340);
 
     const step = (now: number) => {
-      if (token !== animToken) return;
+      if (token !== flightToken) return;
       const t = Math.min(1, (now - start) / dur);
       const eased = 1 - (1 - t) * (1 - t);
       if (state.tracer) state.tracer.t = eased;
@@ -655,7 +688,17 @@ export function createEngine() {
         requestAnimationFrame(step);
         return;
       }
-      finishShot(m, impact, shell, spec.blast, spec.reveal, spec.lethal);
+      finishShot(
+        m,
+        impact,
+        shell,
+        spec.blast,
+        spec.reveal,
+        spec.lethal,
+        firingBearing,
+        firingElevation,
+        state.loadCharges,
+      );
     };
     requestAnimationFrame(step);
   }
@@ -667,10 +710,21 @@ export function createEngine() {
     blast: number,
     reveal: number,
     lethal: boolean,
+    bearing: number,
+    elevation: number,
+    charges: number,
   ) {
     revealNear(impact, Math.max(reveal, blast));
     const note = describeFall(impact, shell, blast, lethal);
     state.impacts.push({ pos: impact, shell, note, at: performance.now() });
+    state.lastShot = {
+      round: state.impacts.length,
+      shell,
+      charges,
+      bearing: round1(bearing),
+      elevation: round1(elevation),
+      grid: formatGrid(impact),
+    };
     state.lastResult = note;
     state.tracer = null;
     state.shake = 0;
@@ -718,10 +772,58 @@ export function createEngine() {
     }
 
     state.missCount += 1;
+    state.correction = correctionFor(m, impact, bearing);
     state.paper = null;
     state.screen = "duty";
-    if (state.missCount >= 2) bumpCoach(1);
+    bumpCoach(4);
     notify();
+  }
+
+  function correctionFor(m: Mission, impact: Km, bearing: number): SpotCorrection | null {
+    if (m.win !== "hit-target") return null;
+    const target = state.markers.find((marker) => m.targetIds.includes(marker.id) && !marker.dead);
+    if (!target) return null;
+    const n = nest();
+    const rangeDelta = rangeKm(n.pos, target.pos) - rangeKm(n.pos, impact);
+    const deflection = angleDelta(bearingDeg(n.pos, target.pos), bearing);
+    if (Math.abs(rangeDelta) < 0.05 && Math.abs(deflection) < 0.2) return null;
+    return {
+      targetId: target.id,
+      rangeKm: round1(rangeDelta),
+      deflectionDeg: round1(deflection),
+      applied: false,
+    };
+  }
+
+  function applyCorrection() {
+    const correction = state.correction;
+    if (!correction || correction.applied || state.rammed) return;
+    const lastImpact = state.impacts[state.impacts.length - 1];
+    const firedRange = lastImpact ? rangeKm(nest().pos, lastImpact.pos) : state.calcRange;
+    const firedBearing = state.lastShot?.bearing ?? state.gunBearing;
+    const correctedRange = Math.max(0.05, firedRange + correction.rangeKm);
+    let correctedBearing = firedBearing + correction.deflectionDeg;
+    correctedBearing %= 360;
+    if (correctedBearing < 0) correctedBearing += 360;
+    state.calcRange = round2(correctedRange);
+    state.clipboard.range = state.calcRange;
+    state.clipboard.bearing = round1(correctedBearing);
+    state.clipboard.charges = null;
+    state.clipboard.elevation = null;
+    state.calcElev = null;
+    state.calcError = null;
+    correction.applied = true;
+    bumpCoach(2);
+    notify();
+  }
+
+  function fireControl() {
+    const match = cardMatched();
+    return {
+      solution: state.clipboard.elevation != null,
+      powder: state.rammed && state.clipboard.charges === state.loadCharges,
+      lay: match.bearing && match.elev && !state.slewing,
+    };
   }
 
   function describeFall(
@@ -808,6 +910,7 @@ export function createEngine() {
     },
     pipe,
     cardMatched,
+    fireControl,
     startDuty,
     setWire,
     setTool,
@@ -829,6 +932,7 @@ export function createEngine() {
     layFromCard,
     arm,
     fire,
+    applyCorrection,
     dismissPaper,
     hint,
     restart,

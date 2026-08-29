@@ -1,5 +1,9 @@
+/* Copyright (c) 2026 lemonhub-io; SPDX-License-Identifier: AGPL-3.0-or-later */
+
 import { createEngine } from "../src/game/engine";
 import { parseGrid } from "../src/game/geo";
+
+declare const process: { exit(code: number): never };
 
 let t = 0;
 (globalThis as unknown as { performance: { now: () => number } }).performance = {
@@ -58,10 +62,31 @@ async function main() {
   g.ram();
   g.layFromCard();
   g.arm();
+  g.setGunBearing(g.getState().gunBearing + 25);
+  g.fire();
+  // Moving the turret while the shell is airborne must not abort the flight.
+  g.layFromCard();
+  await wait();
+  s = g.getState();
+  if (s.screen !== "duty") throw new Error("m2 miss did not return to duty: " + s.screen);
+  if (s.rammed || s.armed) throw new Error("m2 miss did not unload the gun");
+  if (!s.correction || s.correction.applied) throw new Error("m2 miss did not produce a fresh correction");
+
+  // A correction updates the firing card, then still requires calculation,
+  // loading, laying, and arming before a corrected second shot.
+  g.applyCorrection();
+  s = g.getState();
+  if (!s.correction?.applied || s.clipboard.elevation != null) {
+    throw new Error("m2 correction did not clear the old firing solution");
+  }
+  g.calculate();
+  g.ram();
+  g.layFromCard();
+  g.arm();
   g.fire();
   await wait();
   s = g.getState();
-  if (s.screen !== "paper") throw new Error("m2 not paper: " + s.screen + " " + JSON.stringify(s.lastResult));
+  if (s.screen !== "paper") throw new Error("m2 retry not paper: " + s.screen + " " + JSON.stringify(s.lastResult));
   g.dismissPaper();
   s = g.getState();
   if (s.missions[s.missionIndex].id !== "white") throw new Error("not m3");

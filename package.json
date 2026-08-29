@@ -1,16 +1,22 @@
 {
   "name": "iron-nest-field-manual",
-  "private": true,
+  "private": false,
+  "author": "lemonhub-io",
+  "copyright": "Copyright (c) 2026 lemonhub-io",
+  "license": "AGPL-3.0-or-later",
   "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
-    "preview": "vite preview --host"
+    "check:copyright": "node scripts/check-copyright.mjs",
+    "build": "npm run check:copyright && tsc --noEmit && vite build",
+    "preview": "vite preview --host",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name iron-nest --branch main --commit-dirty=true"
   },
   "devDependencies": {
     "typescript": "^5.7.3",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "wrangler": "^4.127.0"
   },
   "dependencies": {
     "@fontsource/archivo-black": "^5.2.5",
@@ -19,6 +25,8 @@
     "@fontsource/special-elite": "^5.2.5"
   },
   "allowScripts": {
-    "esbuild@0.25.12": true
+    "esbuild@0.25.12": true,
+    "esbuild@0.28.1": true,
+    "workerd@1.20260826.1": true
   }
 }
