@@ -22,6 +22,9 @@ export const en = {
     brandSub: "FIELD MANUAL",
     clock: "DUTY",
     teleprinter: "TELEPRINTER",
+    circuit: "CIRCUIT",
+    intel: "INTEL SLIPS",
+    teleNote: "Punch a red slip, or walk the map yourself.",
     command: "COMMAND",
     front: "FRONT",
     rack: "AMMUNITION RACK",
@@ -82,6 +85,7 @@ export const en = {
     ammo: "AMMO",
     calc: "CALC",
     gun: "GUN",
+    hint: "[ ] STATIONS",
   },
   pipe: {
     plot: "PLOT",

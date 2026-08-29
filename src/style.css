@@ -56,7 +56,8 @@ html[lang="zh-CN"] input {
 }
 
 html[lang="zh-CN"] .note,
-html[lang="zh-CN"] .coach p {
+html[lang="zh-CN"] .coach p,
+html[lang="zh-CN"] .fascia-note {
   font-family: var(--zh-note);
   font-weight: 400;
   line-height: 1.78;
@@ -71,7 +72,10 @@ html[lang="zh-CN"] .panel-head,
 html[lang="zh-CN"] .brand span,
 html[lang="zh-CN"] .card dt,
 html[lang="zh-CN"] .card dd,
-html[lang="zh-CN"] .stamp {
+html[lang="zh-CN"] .stamp,
+html[lang="zh-CN"] .plaque,
+html[lang="zh-CN"] .fascia-label,
+html[lang="zh-CN"] .stations button {
   font-family: var(--zh-ui);
   font-weight: 700;
   letter-spacing: 0.075em;
@@ -90,7 +94,8 @@ html[lang="zh-CN"] .brand strong,
 html[lang="zh-CN"] .broadsheet h2,
 html[lang="zh-CN"] .fire,
 html[lang="zh-CN"] .heavy,
-html[lang="zh-CN"] .gun output {
+html[lang="zh-CN"] .gun output,
+html[lang="zh-CN"] .gauge output {
   font-family: var(--zh-ui);
   font-weight: 700;
   letter-spacing: 0.045em;
@@ -107,6 +112,7 @@ html[lang="zh-CN"] .panel-head,
 html[lang="zh-CN"] .pipe li,
 html[lang="zh-CN"] .calc label,
 html[lang="zh-CN"] .gun label,
+html[lang="zh-CN"] .gauge,
 html[lang="zh-CN"] .meta {
   letter-spacing: 0.055em;
 }
@@ -190,7 +196,7 @@ input:focus-visible {
   transform-origin: 50% 12%;
 }
 
-#duty.entering .topbar {
+#duty.entering .mast {
   animation: console-arrive 280ms var(--ease-out) both;
 }
 
@@ -348,13 +354,18 @@ input:focus-visible {
 }
 
 /* DUTY DESK */
-.topbar {
+.mast {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
   align-items: center;
-  border-bottom: 3px solid var(--ink);
-  padding: 8px 14px;
+  column-gap: 16px;
   background: var(--paper-dark);
+  border-bottom: 3px solid var(--ink);
+}
+
+.brand {
+  padding: 8px 14px 6px;
 }
 
 .brand strong {
@@ -374,30 +385,60 @@ input:focus-visible {
   text-align: center;
 }
 
-.topbar .meta:last-child {
-  text-align: right;
+#mission-meta {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-right {
+  padding: 6px 12px 6px 0;
+}
+
+.cycle {
+  margin: 0;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 #duty {
+  --bearing: 0;
+  --elev: 20;
   display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
-  min-height: 100dvh;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
 }
 
 .stations {
+  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  border-bottom: 3px solid var(--ink);
-  background: var(--paper-dark);
+  border-top: 2px solid var(--ink);
 }
 
 .stations button {
+  display: grid;
+  justify-items: center;
+  gap: 1px;
   border: 0;
   border-right: 2px solid var(--ink);
-  padding: 10px 8px;
+  padding: 7px 6px 8px;
   font-size: 0.78rem;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   background: transparent;
+}
+
+.stations button::before {
+  content: attr(data-n);
+  font-family: "Archivo Black", sans-serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  color: var(--muted);
 }
 
 .stations button:last-child {
@@ -409,6 +450,11 @@ input:focus-visible {
   box-shadow: inset 0 3px 0 var(--red);
 }
 
+.stations button.on::before,
+.stations button.due::before {
+  color: var(--red);
+}
+
 .stations button.due {
   color: var(--red);
 }
@@ -416,13 +462,15 @@ input:focus-visible {
 .stage {
   display: flex;
   min-height: 0;
-  padding: 10px;
+  padding: 0;
+  overflow: auto;
 }
 
 .station {
   display: none;
   flex: 1;
   min-height: 0;
+  min-width: 0;
   flex-direction: column;
 }
 
@@ -431,35 +479,256 @@ input:focus-visible {
   animation: console-arrive 280ms var(--ease-out) both;
 }
 
-.station[data-station="map"] #map {
-  min-height: 0;
+.plaque {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0 0 12px;
+  font-family: "Archivo Black", sans-serif;
+  letter-spacing: 0.12em;
+}
+
+.plaque span {
+  color: var(--red);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+}
+
+.plaque b {
+  font-size: 0.92rem;
+}
+
+.fascia-label {
+  margin: 0 0 6px;
+  font-family: "Archivo Black", sans-serif;
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+}
+
+/* TELEPRINTER */
+.tele-page {
+  display: grid;
+  grid-template-columns: minmax(200px, 0.34fr) minmax(0, 1fr);
   flex: 1;
+  min-height: 0;
+}
+
+.tele-fascia {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 16px;
+  background: var(--paper-dark);
+  border-right: 3px solid var(--ink);
+}
+
+.tele-fascia .wires {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.tele-fascia .wire {
+  padding: 14px 12px;
+  font-size: 0.82rem;
+  letter-spacing: 0.14em;
+  text-align: left;
+}
+
+.fascia-note {
+  margin-top: auto;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.tele-roll {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 14px 16px 12px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 11px,
+      rgba(28, 22, 18, 0.12) 11px,
+      rgba(28, 22, 18, 0.12) 12px
+    );
 }
 
 .station[data-station="tele"] .dispatch {
+  position: relative;
   flex: 1;
   min-height: 0;
   max-height: none;
-  font-size: 1.05rem;
-  line-height: 1.5;
+  font-size: clamp(0.95rem, 1.4vw, 1.18rem);
+  line-height: 1.55;
+  padding: 16px 18px 16px 34px;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  box-shadow: 5px 5px 0 var(--ink);
+  overflow: auto;
+}
+
+.station[data-station="tele"] .dispatch::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 22px;
+  pointer-events: none;
+  border-right: 1px solid rgba(28, 22, 18, 0.3);
+  background:
+    radial-gradient(circle at 11px 9px, var(--paper) 3px, var(--ink) 3.3px, var(--ink) 4px, transparent 4.2px)
+      0 6px / 22px 18px;
+}
+
+.intel {
+  margin-top: 12px;
+}
+
+.intel .chip {
+  padding: 10px 14px;
+  font-size: 0.85rem;
+}
+
+/* MAP */
+.map-page {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.map-page #map {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border: 0;
+}
+
+.map-hud {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.map-hud .tools {
+  pointer-events: auto;
+  background: color-mix(in srgb, var(--paper) 90%, transparent);
+  border: 2px solid var(--ink);
+  padding: 6px;
+}
+
+.map-readout {
+  pointer-events: none;
+  background: color-mix(in srgb, var(--paper) 90%, transparent);
+  border: 2px solid var(--ink);
+  padding: 6px 10px;
+  margin: 0;
+  max-width: 42%;
+  text-align: right;
+}
+
+.map-page .map-help {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 2;
+  margin: 0;
+  max-width: min(520px, 70%);
+  padding: 5px 8px;
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  border: 1px solid var(--ink);
+}
+
+/* AMMO */
+.ammo-page {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+  flex: 1;
+  min-height: 0;
+  gap: 12px;
+  padding: 16px 18px 12px;
 }
 
 .station[data-station="ammo"] .rack {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  flex: 1;
-  align-content: start;
+  gap: 10px;
+  min-height: 0;
 }
 
 .station[data-station="ammo"] .shell {
-  min-height: 7rem;
-  align-content: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 0;
+  height: 100%;
+  text-align: center;
+  padding: 16px 8px;
 }
 
+.station[data-station="ammo"] .shell .glyph {
+  width: 28px;
+  height: 92px;
+}
+
+.station[data-station="ammo"] .shell b {
+  font-family: "Archivo Black", sans-serif;
+  font-size: 1.05rem;
+  letter-spacing: 0.08em;
+}
+
+.powder-rail {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  font-family: "Archivo Black", sans-serif;
+  letter-spacing: 0.12em;
+}
+
+.powder-rail .puck-row {
+  flex: 1;
+}
+
+.station[data-station="ammo"] .puck,
+.station[data-station="calc"] .puck {
+  min-width: 44px;
+  min-height: 40px;
+  font-family: "Archivo Black", sans-serif;
+  font-size: 1rem;
+}
+
+.station[data-station="ammo"] .heavy {
+  padding: 16px;
+  font-size: 1rem;
+  letter-spacing: 0.16em;
+}
+
+.heavy.on {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* CALC */
 .calc-grid {
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: 18px;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 0;
   flex: 1;
   min-height: 0;
 }
@@ -467,14 +736,140 @@ input:focus-visible {
 .calc-machine,
 .calc-docket {
   min-height: 0;
+  overflow: auto;
 }
 
-.station[data-station="gun"] label {
-  margin-bottom: 16px;
+.calc-machine {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 18px;
+  background: var(--paper-dark);
+  border-right: 3px solid var(--ink);
 }
 
-.station[data-station="gun"] .fire {
+.calc-range-label input {
+  font-family: "Archivo Black", sans-serif;
+  font-size: 1.8rem;
+  letter-spacing: 0.04em;
+  padding: 10px 12px;
+}
+
+.calc-machine .heavy {
   margin-top: auto;
+}
+
+.calc-out {
+  font-size: 1.35rem;
+  margin-top: 12px;
+  padding: 16px;
+  min-height: 4.4rem;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+}
+
+.calc-docket {
+  margin: 18px 18px 16px 16px;
+  padding: 14px 16px;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  box-shadow: 7px 7px 0 var(--ink);
+  transform: rotate(0.35deg);
+}
+
+.station[data-station="calc"] .card {
+  grid-template-columns: 110px 1fr;
+  gap: 8px 12px;
+  font-size: 0.95rem;
+}
+
+.station[data-station="calc"] .card dd {
+  font-size: 1.35rem;
+}
+
+/* GUN */
+.gun-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(220px, 0.75fr);
+  flex: 1;
+  min-height: 0;
+}
+
+.gun-wheels {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 16px 18px;
+}
+
+.gauge {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 18px;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+}
+
+.gauge output {
+  font-family: "Archivo Black", sans-serif;
+  font-size: clamp(2.2rem, 6vw, 3.6rem);
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+}
+
+.gauge-tape {
+  display: block;
+  height: 10px;
+  border: 2px solid var(--ink);
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--ink) 0 1px,
+    transparent 1px 8px
+  );
+  background-size: 8px 100%;
+}
+
+#bearing-gauge .gauge-tape {
+  background-position: calc(var(--bearing) * -1.6px) 0;
+}
+
+#elev-gauge .gauge-tape {
+  background-position: calc(var(--elev) * -4px) 0;
+}
+
+.gun-actions {
+  margin-top: auto;
+}
+
+.gun-actions .small {
+  flex: 1;
+  padding: 12px 10px;
+  font-size: 0.78rem;
+}
+
+.gun-fire-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--paper-dark);
+  border-left: 3px solid var(--ink);
+}
+
+.gun-fire-col .control-checks {
+  grid-template-columns: 1fr;
+  margin: 0;
+}
+
+.gun-fire-col .control-checks span {
+  padding: 10px;
+}
+
+.gun-fire-col .fire {
+  flex: 1;
+  margin: 0;
+  min-height: 140px;
+  font-size: clamp(1.6rem, 4vw, 2.6rem);
+  letter-spacing: 0.18em;
 }
 
 .panel {
@@ -559,19 +954,21 @@ input:focus-visible {
 .pipe {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 4px;
+  gap: 3px;
   list-style: none;
   margin: 0;
-  padding: 8px 10px 0;
+  padding: 4px 8px;
+  border-bottom: 2px solid var(--ink);
+  background: var(--paper);
 }
 
 .pipe li {
   position: relative;
   overflow: hidden;
   border: 2px solid var(--ink);
-  padding: 4px 2px;
+  padding: 3px 2px;
   text-align: center;
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   letter-spacing: 0.08em;
   background: var(--paper-dark);
   color: var(--muted);
@@ -686,7 +1083,7 @@ input:focus-visible {
 #map {
   flex: 1;
   width: 100%;
-  min-height: 320px;
+  min-height: 0;
   background: #e4d8bc;
   border: 1px solid var(--ink);
   cursor: crosshair;
@@ -812,10 +1209,28 @@ input[type="range"] {
   accent-color: var(--red);
 }
 
-.gun output {
-  font-family: "Archivo Black", sans-serif;
+.gauge output.ok,
+.gun output.ok {
+  color: var(--olive);
+}
+
+.gun-fire-col .control-checks output {
   font-size: 0.95rem;
 }
+
+#arm.on {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.calc-range-label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+}
+
+
 
 .fire {
   width: 100%;
@@ -838,10 +1253,6 @@ input[type="range"] {
   50% { filter: brightness(1.12); box-shadow: 0 0 0 3px var(--ink), 5px 5px 0 var(--ink); }
 }
 
-.gun output.ok {
-  color: var(--olive);
-}
-
 .fire:disabled,
 .heavy:disabled {
   opacity: 0.45;
@@ -855,7 +1266,7 @@ input[type="range"] {
   align-items: center;
   border-top: 3px solid var(--ink);
   padding: 6px 12px;
-  min-height: 64px;
+  min-height: 56px;
   background: var(--paper-dark);
 }
 
@@ -944,17 +1355,64 @@ input[type="range"] {
 }
 
 @media (max-width: 1100px) {
+  .cycle {
+    display: none;
+  }
   .stations button {
     font-size: 0.64rem;
-    padding: 8px 4px;
+    padding: 6px 4px 7px;
     letter-spacing: 0.06em;
   }
+  .tele-page,
   .calc-grid,
-  .station[data-station="ammo"] .rack {
+  .gun-page {
     grid-template-columns: 1fr;
   }
-  #map {
-    min-height: 280px;
+  .tele-fascia {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    border-right: 0;
+    border-bottom: 3px solid var(--ink);
+    padding: 10px 12px;
+  }
+  .tele-fascia .wires {
+    grid-template-columns: 1fr 1fr;
+    flex: 1;
+  }
+  .tele-fascia .wire {
+    padding: 8px 10px;
+  }
+  .fascia-note {
+    display: none;
+  }
+  .gun-fire-col .control-checks {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .gun-fire-col {
+    padding: 10px 12px 12px;
+  }
+  .gun-actions {
+    margin-top: 12px;
+  }
+  .calc-machine,
+  .gun-fire-col {
+    border-right: 0;
+    border-left: 0;
+    border-bottom: 3px solid var(--ink);
+  }
+  .calc-docket {
+    margin: 12px;
+    transform: none;
+  }
+  .station[data-station="ammo"] .rack {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .station[data-station="ammo"] .shell .glyph {
+    height: 64px;
+  }
+  .gun-fire-col .fire {
+    min-height: 88px;
   }
   .bottom {
     grid-template-columns: 1fr auto;
@@ -964,9 +1422,50 @@ input[type="range"] {
   }
 }
 
+@media (max-width: 720px) {
+  .mast {
+    grid-template-columns: 1fr auto;
+  }
+  #mission-meta {
+    grid-column: 1 / -1;
+    text-align: left;
+    padding: 0 14px 6px;
+    font-size: 0.68rem;
+  }
+  .stations button {
+    font-size: 0.58rem;
+    padding: 6px 2px 7px;
+    letter-spacing: 0.04em;
+  }
+  .station[data-station="ammo"] .rack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .gauge output {
+    font-size: 2rem;
+  }
+  .map-hud {
+    flex-wrap: wrap;
+  }
+  .map-readout {
+    max-width: none;
+    text-align: left;
+  }
+  .map-page .map-help {
+    display: none;
+  }
+  .calc-range-label input {
+    font-size: 1.35rem;
+    padding: 8px 10px;
+  }
+  .cat {
+    width: 48px;
+    height: 48px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   #boot.entering .boot-sheet,
-  #duty.entering .topbar,
+  #duty.entering .mast,
   #duty.entering .stage,
   #duty.entering .bottom,
   #paper.entering .broadsheet,

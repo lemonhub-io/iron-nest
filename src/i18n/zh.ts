@@ -30,6 +30,9 @@ export const zh: DeepString<typeof en> = {
     brandSub: "野战手册",
     clock: "值勤中",
     teleprinter: "电传机",
+    circuit: "线路",
+    intel: "情报条",
+    teleNote: "按下红色情报条，或自己走到地图上去标。",
     command: "统帅部",
     front: "前线",
     rack: "弹药架",
@@ -90,6 +93,7 @@ export const zh: DeepString<typeof en> = {
     ammo: "弹药",
     calc: "计算",
     gun: "瞄准",
+    hint: "[ ] 换工位",
   },
   pipe: {
     plot: "标图",

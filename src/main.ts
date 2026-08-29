@@ -73,6 +73,7 @@ function setStation(next: Station, sound = true) {
     return;
   }
   station = next;
+  duty.dataset.station = next;
   document.querySelectorAll<HTMLElement>(".station").forEach((el) => {
     el.classList.toggle("on", el.dataset.station === next);
   });
@@ -81,6 +82,11 @@ function setStation(next: Station, sound = true) {
   });
   if (sound) sfx.tick();
   if (next === "map") requestAnimationFrame(() => map.relayout());
+}
+
+function syncGunGauges(shownBearing: number, shownElev: number) {
+  duty.style.setProperty("--bearing", String(shownBearing));
+  duty.style.setProperty("--elev", String(shownElev));
 }
 
 function show(el: HTMLElement) {
@@ -475,6 +481,7 @@ function render() {
   elevOut.textContent = `${s.shownElev.toFixed(1)}°`;
   bearingOut.classList.toggle("ok", match.bearing);
   elevOut.classList.toggle("ok", match.elev);
+  syncGunGauges(s.shownBearing, s.shownElev);
 
   const steps: Array<"plot" | "calc" | "load" | "lay" | "arm" | "fire"> = [
     "plot",
@@ -544,6 +551,7 @@ function tickUi() {
   if (document.activeElement !== elev) elev.value = String(s.shownElev);
   bearingOut.textContent = `${s.shownBearing.toFixed(1)}°`;
   elevOut.textContent = `${s.shownElev.toFixed(1)}°`;
+  syncGunGauges(s.shownBearing, s.shownElev);
   const now = performance.now();
   if (s.slewing && now - lastWhir > 70) {
     lastWhir = now;

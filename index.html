@@ -35,29 +35,29 @@
       </div>
     </section>
 
-    <section id="duty" class="screen hidden">
-      <header class="topbar">
+    <section id="duty" class="screen hidden" data-station="tele">
+      <header class="mast">
         <div class="brand">
           <strong>IRON NEST</strong>
           <span data-i18n="duty.brandSub">FIELD MANUAL</span>
         </div>
         <div id="mission-meta" class="meta"></div>
         <div class="top-right">
+          <p class="cycle" data-i18n="station.hint">[ ] STATIONS</p>
           <div class="lang">
             <button type="button" data-lang="en">EN</button>
             <button type="button" data-lang="zh">中文</button>
           </div>
           <div id="clock" class="meta" data-i18n="duty.clock">DUTY</div>
         </div>
+        <nav class="stations" aria-label="Stations">
+          <button type="button" data-station="tele" data-n="01" class="on" data-i18n="station.tele">WIRE</button>
+          <button type="button" data-station="map" data-n="02" data-i18n="station.map">MAP</button>
+          <button type="button" data-station="ammo" data-n="03" data-i18n="station.ammo">AMMO</button>
+          <button type="button" data-station="calc" data-n="04" data-i18n="station.calc">CALC</button>
+          <button type="button" data-station="gun" data-n="05" data-i18n="station.gun">GUN</button>
+        </nav>
       </header>
-
-      <nav class="stations" aria-label="Stations">
-        <button type="button" data-station="tele" class="on" data-i18n="station.tele">WIRE</button>
-        <button type="button" data-station="map" data-i18n="station.map">MAP</button>
-        <button type="button" data-station="ammo" data-i18n="station.ammo">AMMO</button>
-        <button type="button" data-station="calc" data-i18n="station.calc">CALC</button>
-        <button type="button" data-station="gun" data-i18n="station.gun">GUN</button>
-      </nav>
 
       <ol id="pipe" class="pipe">
         <li data-pipe="plot" data-i18n="pipe.plot">PLOT</li>
@@ -69,58 +69,73 @@
       </ol>
 
       <div class="stage">
-        <article class="station panel on" data-station="tele">
-          <div class="panel-head">
-            <span data-i18n="duty.teleprinter">TELEPRINTER</span>
-            <div class="wires">
-              <button type="button" data-wire="command" class="wire on" data-i18n="duty.command">COMMAND</button>
-              <button type="button" data-wire="front" class="wire" data-i18n="duty.front">FRONT</button>
+        <article class="station on" data-station="tele">
+          <div class="tele-page">
+            <aside class="tele-fascia">
+              <p class="plaque"><span>01</span><b data-i18n="duty.teleprinter">TELEPRINTER</b></p>
+              <p class="fascia-label" data-i18n="duty.circuit">CIRCUIT</p>
+              <div class="wires">
+                <button type="button" data-wire="command" class="wire on" data-i18n="duty.command">COMMAND</button>
+                <button type="button" data-wire="front" class="wire" data-i18n="duty.front">FRONT</button>
+              </div>
+              <p class="fascia-note" data-i18n="duty.teleNote">Punch a red slip, or walk the map yourself.</p>
+            </aside>
+            <div class="tele-roll">
+              <pre id="dispatch" class="dispatch"></pre>
+              <div class="intel">
+                <p class="fascia-label" data-i18n="duty.intel">INTEL SLIPS</p>
+                <div id="chips" class="chips"></div>
+              </div>
             </div>
           </div>
-          <pre id="dispatch" class="dispatch"></pre>
-          <div id="chips" class="chips"></div>
         </article>
 
-        <article class="station panel" data-station="map">
-          <div class="panel-head">
-            <span data-i18n="duty.map">TACTICAL MAP</span>
-            <span id="map-readout" class="tiny"></span>
+        <article class="station" data-station="map">
+          <div class="map-page">
+            <canvas id="map"></canvas>
+            <div class="map-hud">
+              <div class="tools">
+                <button type="button" data-tool="red" class="tool on" data-i18n="duty.red">RED LINE</button>
+                <button type="button" data-tool="yellow" class="tool" data-i18n="duty.yellow">YELLOW RAY</button>
+                <button type="button" data-tool="white" class="tool" data-i18n="duty.white">PENCIL</button>
+                <button type="button" data-tool="erase" class="tool" data-i18n="duty.erase">ERASE</button>
+                <button type="button" id="clear-plot" class="tool ghost" data-i18n="duty.clear">CLEAR</button>
+              </div>
+              <span id="map-readout" class="tiny map-readout"></span>
+            </div>
+            <p class="map-help" data-i18n="duty.mapHelp">Click two points. Red copies bearing and range to the card.</p>
           </div>
-          <div class="tools">
-            <button type="button" data-tool="red" class="tool on" data-i18n="duty.red">RED LINE</button>
-            <button type="button" data-tool="yellow" class="tool" data-i18n="duty.yellow">YELLOW RAY</button>
-            <button type="button" data-tool="white" class="tool" data-i18n="duty.white">PENCIL</button>
-            <button type="button" data-tool="erase" class="tool" data-i18n="duty.erase">ERASE</button>
-            <button type="button" id="clear-plot" class="tool ghost" data-i18n="duty.clear">CLEAR</button>
-          </div>
-          <canvas id="map"></canvas>
-          <p class="map-help" data-i18n="duty.mapHelp">Click two points. Red copies bearing and range to the card.</p>
         </article>
 
-        <article class="station panel" data-station="ammo">
-          <div class="panel-head"><span data-i18n="duty.rack">AMMUNITION RACK</span></div>
-          <div id="rack" class="rack"></div>
-          <div class="pucks">
-            <span data-i18n="duty.powder">POWDER</span>
-            <div id="pucks" class="puck-row"></div>
+        <article class="station" data-station="ammo">
+          <div class="ammo-page">
+            <p class="plaque"><span>03</span><b data-i18n="duty.rack">AMMUNITION RACK</b></p>
+            <div id="rack" class="rack"></div>
+            <div class="pucks powder-rail">
+              <span data-i18n="duty.powder">POWDER</span>
+              <div id="pucks" class="puck-row"></div>
+            </div>
+            <button id="ram" type="button" class="heavy" data-i18n="duty.ram">RAM BREECH</button>
+            <p id="load-state" class="note"></p>
           </div>
-          <button id="ram" type="button" class="heavy" data-i18n="duty.ram">RAM BREECH</button>
-          <p id="load-state" class="note"></p>
         </article>
 
-        <article class="station panel" data-station="calc">
+        <article class="station" data-station="calc">
           <div class="calc-grid">
             <div class="calc-machine">
-              <div class="panel-head"><span data-i18n="duty.calc">BALLISTIC CALCULATOR</span></div>
-              <label><span data-i18n="duty.rangeKm">RANGE KM</span>
+              <p class="plaque"><span>04</span><b data-i18n="duty.calc">BALLISTIC CALCULATOR</b></p>
+              <label class="calc-range-label"><span data-i18n="duty.rangeKm">RANGE KM</span>
                 <input id="calc-range" type="number" min="0" max="32" step="0.01" />
               </label>
               <div class="row">
                 <button type="button" id="copy-range" class="small" data-i18n="duty.copyRange">COPY RANGE</button>
               </div>
-              <div id="calc-pucks" class="puck-row"></div>
+              <div class="pucks">
+                <span data-i18n="duty.powder">POWDER</span>
+                <div id="calc-pucks" class="puck-row"></div>
+              </div>
               <button id="calculate" type="button" class="heavy" data-i18n="duty.calculate">CALCULATE</button>
-              <p id="calc-out" class="note"></p>
+              <p id="calc-out" class="note calc-out"></p>
             </div>
             <div class="calc-docket">
               <div class="panel-head"><span data-i18n="duty.card">FIRING CARD</span></div>
@@ -135,26 +150,36 @@
           </div>
         </article>
 
-        <article class="station panel" data-station="gun">
-          <div class="panel-head"><span data-i18n="duty.gun">GUN LAY</span></div>
-          <label><span data-i18n="duty.bearing">BEARING</span>
-            <input id="bearing" type="range" min="0" max="360" step="0.1" />
-            <output id="bearing-out">0.0°</output>
-          </label>
-          <label><span data-i18n="duty.elevation">ELEVATION</span>
-            <input id="elev" type="range" min="5" max="75" step="0.1" />
-            <output id="elev-out">20.0°</output>
-          </label>
-          <div class="control-checks" aria-label="Fire control checks">
-            <span><b data-i18n="duty.solution">SOLUTION</b><output id="check-solution"></output></span>
-            <span><b data-i18n="duty.breech">BREECH</b><output id="check-powder"></output></span>
-            <span><b data-i18n="duty.laying">LAY</b><output id="check-lay"></output></span>
+        <article class="station" data-station="gun">
+          <div class="gun-page">
+            <div class="gun-wheels">
+              <p class="plaque"><span>05</span><b data-i18n="duty.gun">GUN LAY</b></p>
+              <label class="gauge" id="bearing-gauge">
+                <span data-i18n="duty.bearing">BEARING</span>
+                <output id="bearing-out">0.0°</output>
+                <input id="bearing" type="range" min="0" max="360" step="0.1" />
+                <i class="gauge-tape" aria-hidden="true"></i>
+              </label>
+              <label class="gauge" id="elev-gauge">
+                <span data-i18n="duty.elevation">ELEVATION</span>
+                <output id="elev-out">20.0°</output>
+                <input id="elev" type="range" min="5" max="75" step="0.1" />
+                <i class="gauge-tape" aria-hidden="true"></i>
+              </label>
+              <div class="row gun-actions">
+                <button type="button" id="lay" class="small" data-i18n="duty.lay">LAY FROM CARD</button>
+                <button type="button" id="arm" class="small" data-i18n="duty.arm">ARM</button>
+              </div>
+            </div>
+            <div class="gun-fire-col">
+              <div class="control-checks" aria-label="Fire control checks">
+                <span><b data-i18n="duty.solution">SOLUTION</b><output id="check-solution"></output></span>
+                <span><b data-i18n="duty.breech">BREECH</b><output id="check-powder"></output></span>
+                <span><b data-i18n="duty.laying">LAY</b><output id="check-lay"></output></span>
+              </div>
+              <button id="fire" type="button" class="fire" data-i18n="duty.fire">FIRE</button>
+            </div>
           </div>
-          <div class="row">
-            <button type="button" id="lay" class="small" data-i18n="duty.lay">LAY FROM CARD</button>
-            <button type="button" id="arm" class="small" data-i18n="duty.arm">ARM</button>
-          </div>
-          <button id="fire" type="button" class="fire" data-i18n="duty.fire">FIRE</button>
         </article>
       </div>
 
